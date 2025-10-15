@@ -276,16 +276,17 @@ class SpectTestRun:
         return status, data_out_size
 
     def set_key(self, key: bytes, ktype: int, slot: int, offset: int):
+        assert len(key) % 4 == 0
         self.info(f"Setting key: Type {ktype}, Slot {slot}, Offset {offset}")
 
         val = [x[0] for x in struct.iter_unpack('<I', key)]
-        for w in range(len(val)):
-            self.cmd_file.write(f"set keymem[{ktype}][{slot}][{offset+w}] 0x{val[w]:08x}\n")
+        for i, word in enumerate(val):
+            self.cmd_file.write(f"set keymem[{ktype}][{slot}][{offset+i}] 0x{word:08x}\n")
 
     def key_slot_status(self, ktype, slot) -> KeyMem.SlotStatus:
         return self.keymem.slot_status(ktype, slot)
 
-    def read_key(self, ktype: int, slot: int, offset: int, size: int = 8) -> bytes:
+    def read_key(self, ktype: int, slot: int, offset: int, size: int = 32) -> bytes:
         self.info(f"Reading key: Type {ktype}, Slot {slot}, Offset {offset}")
         return self.keymem.read(ktype, slot, offset, size)
 

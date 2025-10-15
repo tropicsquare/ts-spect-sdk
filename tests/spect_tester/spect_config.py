@@ -36,10 +36,7 @@ class EccSlot:
         "k3" : 2*8,
         "k4" : 3*8
     }
-    PUB_SLOT_LAYOUT = {
-        "x" : 5*8,
-        "y" : 6*8
-    }
+    PUB_OFFSET = 5*8
     METADATA_OFFSET = 4*8
 
 class SpectOpStatus(IntEnum):

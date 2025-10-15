@@ -55,10 +55,11 @@ class KeyMem:
                 offset += 1
 
     def read(self, ktype: int, slot: int, offset: int, size: int) -> bytes:
+        assert size % 4 == 0
         if self.kmem_status[ktype][slot] == KeyMem.SlotStatus.EMPTY:
             return None
 
-        data = self.kmem_data[ktype][slot][offset:offset+size]
+        data = self.kmem_data[ktype][slot][offset:offset+(size//4)]
         return b''.join(struct.pack('<I', d) for d in data)
 
     def slot_status(self, ktype, slot) -> SlotStatus:

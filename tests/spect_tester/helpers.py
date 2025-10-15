@@ -11,6 +11,12 @@ from .spect_config import (
 def random_bytes(n: int):
     return rn.getrandbits(n*8).to_bytes(n, 'little')
 
+def int2bytes(x: int, length: int = 32, endianity: str = 'little'):
+    return int.to_bytes(x, length, endianity)
+
+def bytes2int(b: bytes, endianity: str = 'little'):
+    return int.from_bytes(b, endianity)
+
 def create_metadata(curve: CurveType, slot: int, origin: int, invalid_metadata=None):
 
     pub_slot_type = KeySlotType.SLOT_PUBLIC
@@ -30,10 +36,10 @@ def create_metadata(curve: CurveType, slot: int, origin: int, invalid_metadata=N
     elif invalid_metadata == "curve":
         curve_in = 0x42
 
-    pub_metadata_ref   = ((padding<<32) | (slot_number<<24) | (pub_slot_type<<16)  | (origin_in<<8) | curve_in)
-    priv_metadata_ref  = ((padding<<32) | (slot_number<<24) | (priv_slot_type<<16) | (origin_in<<8) | curve_in)
+    pub_metadata_ref   = ((slot_number<<24) | (pub_slot_type<<16)  | (origin_in<<8) | curve_in)
+    priv_metadata_ref  = ((slot_number<<24) | (priv_slot_type<<16) | (origin_in<<8) | curve_in)
 
-    return pub_metadata_ref, priv_metadata_ref
+    return int2bytes(pub_metadata_ref, length=4), int2bytes(priv_metadata_ref, length=4)
 
 def get_release_version():
     try:
