@@ -154,13 +154,14 @@ class SpectTestRun:
         with open(self.emem_out_file, 'r') as emem_out_hex:
             self.emem_out = np.loadtxt(emem_out_hex, dtype=int,  usecols=1, converters={1: lambda s: int(s, 16)})
 
+    def parse_keymem(self):
+        self.keymem = KeyMem()
+        self.keymem.load(self.keymem_file)
+
     def get_context(self) -> SpectContext:
         ctx = SpectContext()
         ctx.load(self.context_file)
         return ctx
-
-    def parse_keymem(self):
-        self.keymem = KeyMem(self.keymem_file)
 
     def cmd_start(self):
         self.cmd_file.write("start\n")
@@ -432,6 +433,9 @@ class SpectTester:
     def create_test_run(self, run_name: str) -> SpectTestRun:
         self.info(f"Creating TestRun: {run_name}")
         self.test_runs[run_name] = (SpectTestRun(run_name, self.test_dir))
+        return self.test_runs[run_name]
+
+    def get_test_run(self, run_name: str) -> SpectTestRun:
         return self.test_runs[run_name]
 
     def run_all(self):
