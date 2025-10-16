@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import yaml
-import binascii
 import os
 import sys
 import numpy as np
 import random as rn
 import struct
 from argparse import SUPPRESS, ArgumentParser
-
 import logging
 
 from .spect_config import (
-    TS_REPO_ROOT,
-    SpectMem,
+    TS_REPO_ROOT
 )
-
-from .helpers import set_seed
-
+from .helpers import (
+    set_seed
+)
+from .spect_memory import SpectMem
 from .spect_context import SpectContext
-
 from .key_memory import KeyMem
 
 #############################################################
@@ -88,8 +85,8 @@ class SpectTestRun:
         self.emem_out = None
         self.keymem   = None
 
-        self.insrc    = SpectMem.EMEM_IN_SRC
-        self.outsrc   = SpectMem.EMEM_OUT_SRC
+        self.insrc    = SpectMem.EmemIn.src
+        self.outsrc   = SpectMem.EmemOut.src
         self.insize   = 0
 
         self.op_dict  = None
@@ -201,11 +198,9 @@ class SpectTestRun:
         self.op_dict = op_dict
 
     def write_word(self, addr: int, word: int):
-        mem_base = addr & 0xF000
-        mem_off = (addr & 0xFFF) // 4
-
-        if ((mem_base == SpectMem.DATA_RAM_IN and mem_off < SpectMem.DATA_RAM_IN_DEPTH) or
-            (mem_base == SpectMem.EMEM_IN     and mem_off < SpectMem.EMEM_IN_DEPTH)):
+        if (SpectMem.DataRamIn.check_address(addr) or
+            SpectMem.EmemIn.check_address(addr)
+        ):
             self.cmd_file.write(f"set mem[0x{addr:08x}] 0x{word:08x}\n")
         else:
             self.warning(f"Address {hex(addr)} is invalid input address!")
@@ -224,9 +219,9 @@ class SpectTestRun:
         mem_base = addr & 0xF000
         mem_off = (addr & 0xFFF) // 4
 
-        if mem_base == SpectMem.DATA_RAM_OUT and mem_off < SpectMem.DATA_RAM_IN_DEPTH:
+        if SpectMem.DataRamOut.check_address(addr):
             return self.data_out[mem_off]
-        elif mem_base == SpectMem.EMEM_OUT and mem_off < SpectMem.EMEM_OUT_DEPTH:
+        elif SpectMem.EmemOut.check_address(addr):
             return self.emem_out[mem_off]
         else:
             self.warning(f"Address {hex(addr)} is invalid output address!")
@@ -235,13 +230,12 @@ class SpectTestRun:
     def read_bytes(self, addr: int, lenght: int) -> bytes:
         self.info(f"Reading {lenght} bytes from 0x{addr:04x}")
 
-        mem_base = addr & 0xF000
         mem_off = (addr & 0xFFF) // 4
 
-        if mem_base == SpectMem.DATA_RAM_OUT and mem_off < SpectMem.DATA_RAM_IN_DEPTH:
-            data = self.data_out[mem_off:(lenght//4)]
-        elif mem_base == SpectMem.EMEM_OUT and mem_off < SpectMem.EMEM_OUT_DEPTH:
-            data = self.emem_out[mem_off:(lenght//4)]
+        if SpectMem.DataRamOut.check_address(addr):
+            data = self.data_out[mem_off:mem_off+(lenght//4)]
+        elif SpectMem.EmemOut.check_address(addr):
+            data = self.emem_out[mem_off:mem_off+(lenght//4)]
         else:
             self.warning(f"Address {hex(addr)} is invalid output address!")
             data = []

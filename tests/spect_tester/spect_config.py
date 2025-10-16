@@ -1,33 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from enum import IntEnum
 import os
+from enum import IntEnum
 
 TS_REPO_ROOT = os.environ["TS_REPO_ROOT"]
 SPECT_FW_MAIN = TS_REPO_ROOT+"/src/main.s"
 
 RAR_STACK_DEPTH = 5
-
-class SpectMem:
-    DATA_RAM_IN         = 0x0000
-    DATA_RAM_IN_SRC     = DATA_RAM_IN>>12
-    DATA_RAM_IN_DEPTH   = 512
-    DATA_RAM_IN_SIZE    = DATA_RAM_IN_DEPTH*8
-
-    DATA_RAM_OUT        = 0x1000
-    DATA_RAM_OUT_SRC    = DATA_RAM_OUT>>12
-    DATA_RAM_OUT_DEPTH  = 128
-    DATA_RAM_OUT_SIZE   = DATA_RAM_OUT_DEPTH*8
-
-    EMEM_IN             = 0x4000
-    EMEM_IN_SRC         = EMEM_IN>>12
-    EMEM_IN_DEPTH       = 36
-    EMEM_IN_SIZE        = EMEM_IN_DEPTH*8
-
-    EMEM_OUT            = 0x5000
-    EMEM_OUT_SRC        = EMEM_OUT>>12
-    EMEM_OUT_DEPTH      = 32
-    EMEM_OUT_SIZE       = EMEM_OUT_DEPTH*8
 
 class EccSlot:
     PRIV_SLOT_LAYOUT = {

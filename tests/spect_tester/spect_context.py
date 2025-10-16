@@ -4,8 +4,8 @@ from binascii import unhexlify
 
 from .spect_config import (
     RAR_STACK_DEPTH,
-    SpectMem
 )
+from .spect_memory import SpectMem
 
 class SpectContext:
     def __init__(
@@ -102,7 +102,7 @@ class SpectContext:
 
                 if line == "Data RAM In:":
                     i += 1
-                    for _ in range(SpectMem.DATA_RAM_IN_DEPTH):
+                    for _ in range(SpectMem.DataRamIn.depth):
                         i += 1
                         line = data[i]
                         val = int.from_bytes(unhexlify(line), 'big')
@@ -110,7 +110,7 @@ class SpectContext:
 
                 if line == "Data RAM Out:":
                     i += 1
-                    for _ in range(SpectMem.DATA_RAM_OUT_DEPTH):
+                    for _ in range(SpectMem.DataRamOut.depth):
                         i += 1
                         line = data[i]
                         val = int.from_bytes(unhexlify(line), 'big')

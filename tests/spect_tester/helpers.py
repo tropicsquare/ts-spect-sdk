@@ -2,11 +2,18 @@
 
 import subprocess
 import random as rn
+from enum import Enum
+from typing import Type
 
 from .spect_config import (
     KeySlotType,
-    CurveType
+    CurveType,
 )
+from .spect_memory import (
+    MemorySpace,
+    SpectMem,
+)
+
 
 def random_bytes(n: int):
     return rn.getrandbits(n*8).to_bytes(n, 'little')
@@ -17,6 +24,25 @@ def int2bytes(x: int, length: int = 32, endianity: str = 'little'):
 def bytes2int(b: bytes, endianity: str = 'little'):
     return int.from_bytes(b, endianity)
 
+class SlotMetadataErrType(Enum):
+    NO_ERR     = 0
+    TYPE_ERR   = 1
+    NUMBER_ERR = 2
+    ORIGIN_ERR = 3
+    CURVE_ERR  = 4
+
+def get_input_source(defines_set: set) -> Type[MemorySpace]:
+    if "IN_SRC_EN" in defines_set and rn.randint(0, 1):
+        return SpectMem.DataRamIn
+    else:
+        return SpectMem.EmemIn
+
+def get_output_source(defines_set: set) -> Type[MemorySpace]:
+    if "OUT_SRC_EN" in defines_set and rn.randint(0, 1):
+        return SpectMem.DataRamOut
+    else:
+        return SpectMem.EmemOut
+
 def create_metadata(curve: CurveType, slot: int, origin: int, invalid_metadata=None):
 
     pub_slot_type = KeySlotType.SLOT_PUBLIC
@@ -24,16 +50,15 @@ def create_metadata(curve: CurveType, slot: int, origin: int, invalid_metadata=N
     slot_number = slot
     origin_in = origin
     curve_in = curve
-    padding = 0
 
-    if invalid_metadata == "slot_type":
+    if invalid_metadata == SlotMetadataErrType.TYPE_ERR:
         pub_slot_type = 0xFF
         priv_slot_type = 0xFF
-    elif invalid_metadata == "slot_number":
+    elif invalid_metadata == SlotMetadataErrType.NUMBER_ERR:
         slot_number = slot+1
-    elif invalid_metadata == "origin":
+    elif invalid_metadata == SlotMetadataErrType.ORIGIN_ERR:
         origin_in = 0xFF
-    elif invalid_metadata == "curve":
+    elif invalid_metadata == SlotMetadataErrType.CURVE_ERR:
         curve_in = 0x42
 
     pub_metadata_ref   = ((slot_number<<24) | (pub_slot_type<<16)  | (origin_in<<8) | curve_in)
