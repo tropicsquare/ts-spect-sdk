@@ -8,6 +8,7 @@ import random as rn
 import struct
 from argparse import SUPPRESS, ArgumentParser
 import logging
+from datetime import datetime
 
 from .spect_config import (
     TS_REPO_ROOT
@@ -20,9 +21,14 @@ from .spect_context import SpectContext
 from .key_memory import KeyMem
 
 #############################################################
+#   TIMESTAMP
+#############################################################
+TIMESTAMP = datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
+
+#############################################################
 #   PARSER
 #############################################################
-parser = ArgumentParser(description='TS SPECT tests scripts')
+parser = ArgumentParser(description='TS SPECT Tester')
 
 parser.add_argument(
     "--seed",
@@ -44,19 +50,6 @@ class SpectTestRun:
     ISA             = 2
     FIRST_ADDR      = 0x8000
     CFG_WORD_ADDR   = 0x0100
-
-    class SpectTestRunLogger:
-        def __init__(self, name: str, log_file: str, verbosity = logging.INFO):
-            self.logger = logging.getLogger(name)
-            self.logger.setLevel(verbosity)
-            self.logger.propagate = False
-            hndl = logging.FileHandler(log_file)
-            formatter = logging.Formatter(
-                '%(levelname)s - %(message)s'
-            )
-            hndl.setFormatter(formatter)
-            if not self.logger.handlers:
-                self.logger.addHandler(hndl)
 
     def __init__(self, run_name: str, test_dir: str):
         self.run_name = run_name
@@ -126,21 +119,27 @@ class SpectTestRun:
         self.max_instr_cnt   = 200_000
         self.break_str = ""
 
-    def info(self, s: str):
+    def info(self, s: str, printout: bool = False):
         self.logger.info(s)
+        if printout:
+            print(f"INFO: {s}")
 
-    def warning(self, s: str):
+    def warning(self, s: str, printout: bool = False):
         self.logger.warning(s)
         self.warn_cnt += 1
+        if printout:
+            print(f"\033[93mWarning: {s}\033[00m")
 
-    def error(self, s: str):
-        print(f"\033[91m{s}\033[00m")
+    def error(self, s: str, printout: bool = True):
         self.logger.error(s)
         self.err_cnt += 1
+        if printout:
+            print(f"\033[91mError: {s}\033[00m")
 
-    def critical(self, s: str):
-        print(f"\033[91m{s}\033[00m")
+    def critical(self, s: str, printout: bool = True):
         self.logger.critical(s)
+        if printout:
+            print(f"\033[91mCritical: {s}\033[00m")
         sys.exit(1)
 
     def status_summary(self):
@@ -192,7 +191,7 @@ class SpectTestRun:
         if self.op_dict is None:
             self.critical(f"SPECT Op '{op_name}' was not found in {SpectTester.OPS_CONFIG}!")
 
-        self.info(f"SPECT Op set to '{op_name}', OP_ID: {self.op_dict['id']}")
+        self.info(f"SPECT Op set to '{op_name}', OP_ID: 0x{self.op_dict['id']:02x}")
 
     def set_op_dict(self, op_dict: dict):
         self.op_dict = op_dict
@@ -216,7 +215,6 @@ class SpectTestRun:
             self.write_word(addr+(i*4), w)
 
     def read_word(self, addr: int) -> int:
-        mem_base = addr & 0xF000
         mem_off = (addr & 0xFFF) // 4
 
         if SpectMem.DataRamOut.check_address(addr):
@@ -245,9 +243,9 @@ class SpectTestRun:
     def set_cfg_word(self):
         self.info(
             f"Seting CFG Word:\n"+
-            f"\tOP_ID {self.op_dict['id']}\n"+
-            f"\tOutSrc {self.outsrc}\n"+
-            f"\tInSrc {self.insrc}\n"+
+            f"\tOP_ID:    0x{self.op_dict['id']:02x}\n"+
+            f"\tOutSrc:   0x{self.outsrc:01x}\n"+
+            f"\tInSrc:    0x{self.insrc:01x}\n"+
             f"\tInputSize {self.insize}"
         )
         cfg_word = self.op_dict["id"] + (self.outsrc << 8) + (self.insrc << 12) + (self.insize << 16)
@@ -368,31 +366,91 @@ class SpectTester:
 
     ISS = "spect_iss"
     OPS_CONFIG = os.path.join(TS_REPO_ROOT, "spect_ops_config.yml")
+    TESTER_DIRT = os.path.join(TS_REPO_ROOT, "tests", "test_results")
 
     def __init__(self, test_name: str):
-        # Create test directory
-        self.test_dir = f"{TS_REPO_ROOT}/tests/test_{test_name}"
-        os.system(f"rm -rf {self.test_dir}")
-        os.system(f"mkdir {self.test_dir}")
+        self.test_runs = {}
+        self.test_name = test_name
+        self.err_cnt = 0
 
-        # Set and store seed
+        ############################################################################################
+        #   Create test directory
+        ############################################################################################
+        test_dir_name = f"test_{self.test_name}_{TIMESTAMP}"
+        self.test_dir = os.path.join(SpectTester.TESTER_DIRT, test_dir_name)
+        os.system(f"rm -rf {self.test_dir}")
+        os.makedirs(self.test_dir)
+
+        ############################################################################################
+        #   Logger
+        ############################################################################################
+        self.log_file = os.path.join(self.test_dir, "tester.log")
+
+        self.logger = logging.getLogger(f"{self.test_name}_tester")
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        hndl = logging.FileHandler(self.log_file)
+        formatter = logging.Formatter(
+            '%(levelname)s - %(message)s'
+        )
+        hndl.setFormatter(formatter)
+        if not self.logger.handlers:
+            self.logger.addHandler(hndl)
+
+        ############################################################################################
+        #   Set and store seed
+        ############################################################################################
         args = parser.parse_args()
         seed = set_seed(args)
         rn.seed(seed)
         print(f"Seed: {seed}")
-        with open(os.path.join(self.test_dir, "seed"), 'w') as f:
-            f.write(f"{seed}")
+        self.logger.info(f"Seed: {seed}")
 
-        self.test_runs = {}
+    def info(self, s: str, printout: bool = False):
+        self.logger.info(s)
+        if printout:
+            print(f"INFO: {s}")
+
+    def warning(self, s: str, printout: bool = False):
+        self.logger.warning(s)
+        self.warn_cnt += 1
+        if printout:
+            print(f"\033[93mWarning: {s}\033[00m")
+
+    def error(self, s: str, printout: bool = True):
+        self.logger.error(s)
+        self.err_cnt += 1
+        if printout:
+            print(f"\033[91mError: {s}\033[00m")
+
+    def critical(self, s: str, printout: bool = True):
+        self.logger.critical(s)
+        sys.exit(1)
+        if printout:
+            print(f"\033[91mCritical: {s}\033[00m")
 
     def create_test_run(self, run_name: str) -> SpectTestRun:
+        self.info(f"Creating TestRun: {run_name}")
         self.test_runs[run_name] = (SpectTestRun(run_name, self.test_dir))
         return self.test_runs[run_name]
 
     def run_all(self):
         for run_name, run in self.test_runs.items():
             print(f"Running {run_name}")
+            self.info(f"Running {run_name}")
             run.run()
+
+    def count_errors(self) -> int:
+        err_cnt = self.err_cnt
+
+        for run_name, run in self.test_runs.items():
+            err_cnt += run.err_cnt
+            if run.err_cnt > 0:
+                self.error(f"{run_name}: FAILED (Error Count: {run.err_cnt})")
+            else:
+                self.info(f"{run_name}: PASSED")
+
+        return err_cnt
 
     @staticmethod
     def print_passed():
