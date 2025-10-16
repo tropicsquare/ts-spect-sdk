@@ -50,6 +50,10 @@ class CurveType(IntEnum):
     ED25519 = 0x02
     INVALID = 0xee
 
+class KeyOrigin(IntEnum):
+    GENERATE    = 0x1
+    STORE       = 0x2
+
 class KeySlotType(IntEnum):
     SLOT_PUBLIC     = 0xAA
     SLOT_PRIVATE    = 0x55
