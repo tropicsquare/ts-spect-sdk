@@ -350,8 +350,11 @@ class SpectTestRun:
         cmd += f" --shell --cmd-file={self.cmd_file_path}"
         cmd += f" > {self.run_dir}/iss.log"
 
-        print(f"\033[94mRunning {self.run_name}\033[00m")
-        self.info("Running SPECT_ISS")
+        print(f"Running {self.run_name}")
+        self.info(
+            "Running SPECT_ISS\n"+
+            "CMD: {}".format(cmd.replace(' ', '\n\t'))
+        )
 
         if os.system(cmd):
             self.critical("SPECT_ISS Failed")
@@ -373,6 +376,8 @@ class SpectTester:
         self.test_runs = {}
         self.test_name = test_name
         self.err_cnt = 0
+
+        self.print_baner()
 
         ############################################################################################
         #   Create test directory
@@ -406,6 +411,17 @@ class SpectTester:
         rn.seed(seed)
         print(f"Seed: {seed}")
         self.logger.info(f"Seed: {seed}")
+
+    def print_baner(self, width: int = 50):
+        s = self.test_name
+        l = len(s)
+        num_spaces = (width-2-l)//2
+        before = ' '*num_spaces
+        after = ' '*(width-2-l-num_spaces)
+
+        print(f"\033[94m{'*'*width}\033[00m")
+        print(f"\033[94m*{before}{self.test_name}{after}*\033[00m")
+        print(f"\033[94m{'*'*width}\033[00m")
 
     def info(self, s: str, printout: bool = False):
         self.logger.info(s)
