@@ -16,7 +16,10 @@ from .spect_memory import (
 
 
 def random_bytes(n: int):
-    return rn.getrandbits(n*8).to_bytes(n, 'little')
+    if n == 0:
+        return b''
+    else:
+        return rn.getrandbits(n*8).to_bytes(n, 'little')
 
 def int2bytes(x: int, length: int = 32, endianity: str = 'little'):
     return int.to_bytes(x, length, endianity)
