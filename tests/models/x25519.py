@@ -2,6 +2,8 @@ p = 2**255 - 19
 
 a24M = 121665
 
+A = 486662
+
 def inv0(z):
     return pow(z, p-2, p)
 
