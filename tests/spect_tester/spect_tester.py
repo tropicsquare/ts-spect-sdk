@@ -371,7 +371,7 @@ class SpectTestRun:
         cmd += f" --dump-keymem={self.keymem_file}"
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
-        cmd += f" --dump-exec-info={self.exec_info_file}"
+        #cmd += f" --dump-exec-info={self.exec_info_file}"
 
         if self.input_keymem_file:
             cmd += f" --load-keymem={self.input_keymem_file}"
