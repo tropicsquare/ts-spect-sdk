@@ -27,7 +27,7 @@ def bytes2scalar(b: bytes) -> int:
     tmp |= 2**254
     return tmp
 
-def x25519(k, u):
+def x25519(k, u) -> int:
     x_1 = u
     x_2 = 1
     z_2 = 0
