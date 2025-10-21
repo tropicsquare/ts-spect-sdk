@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from typing import Type
+import abc
 
-class MemorySpace(Type):
+class MemorySpace(abc.ABC):
     base:   int
     src:    int
     depth:  int

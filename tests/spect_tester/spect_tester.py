@@ -2,13 +2,19 @@
 
 import yaml
 import os
+import glob
 import sys
 import numpy as np
 import random as rn
 import struct
-from argparse import SUPPRESS, ArgumentParser
 import logging
+
 from datetime import datetime
+
+from argparse import (
+    SUPPRESS,
+    ArgumentParser,
+)
 
 from .spect_config import (
     TS_REPO_ROOT
@@ -19,7 +25,13 @@ from .helpers import (
 from .spect_memory import SpectMem
 from .spect_context import SpectContext
 from .key_memory import KeyMem
-
+from .spect_default_fw import (
+    SpectFw,
+    SpectDefaultFW,
+    RELEASE_TAG,
+    RELEASE_DIR,
+    get_release_version,
+)
 #############################################################
 #   TIMESTAMP
 #############################################################
@@ -41,20 +53,31 @@ parser.add_argument(
 #   Test Run
 #############################################################
 class SpectTestRun:
-
-    DEFAULT_FW_FILE    = os.path.join(TS_REPO_ROOT, "build", "main.hex")
-    DEFAULT_S_FILE     = os.path.join(TS_REPO_ROOT, "src",   "main.s")
-    DEFAULT_CONST_FILE = os.path.join(TS_REPO_ROOT, "build", "constants.hex")
-
     FW_PARITY       = 2
     ISA             = 2
     FIRST_ADDR      = 0x8000
     CFG_WORD_ADDR   = 0x0100
 
-    def __init__(self, run_name: str, test_dir: str):
+    def __init__(self, test_name: str, run_name: str, test_dir: str, spect_fw: SpectFw):
         self.run_name = run_name
         self.run_dir = os.path.join(test_dir, self.run_name)
         os.system(f"mkdir {self.run_dir}")
+
+        ############################################################################################
+        #   Logger
+        ############################################################################################
+        self.log_file = os.path.join(self.run_dir, "test_run.log")
+
+        self.logger = logging.getLogger(f"{test_name}_{run_name}")
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        hndl = logging.FileHandler(self.log_file)
+        formatter = logging.Formatter(
+            '%(levelname)s - %(message)s'
+        )
+        hndl.setFormatter(formatter)
+        if not self.logger.handlers:
+            self.logger.addHandler(hndl)
 
         ############################################################################################
         #   Files
@@ -69,7 +92,14 @@ class SpectTestRun:
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex")
         self.context_file    = os.path.join(self.run_dir, "context")
 
-        self.fw_file         = SpectTestRun.DEFAULT_FW_FILE
+        self.spect_fw = spect_fw
+        if RELEASE_TAG in os.environ.keys():
+            self.fw_file, self.constfile = self.spect_fw.get_release_files()
+        else:
+            if not spect_fw.check_exists():
+                self.critical(f"Default FW Sources of {spect_fw.__name__} does not exist")
+            self.fw_file         = spect_fw.hex_file
+            self.constfile       = spect_fw.const_rom_file
 
         ############################################################################################
         #   Data
@@ -90,22 +120,6 @@ class SpectTestRun:
         self.input_keymem_file  = None
         self.input_fault_file   = None
         self.input_context_file = None
-
-        ############################################################################################
-        #   Logger
-        ############################################################################################
-        self.log_file = os.path.join(self.run_dir, "test_run.log")
-
-        self.logger = logging.getLogger(self.run_name)
-        self.logger.setLevel(logging.INFO)
-        self.logger.propagate = False
-        hndl = logging.FileHandler(self.log_file)
-        formatter = logging.Formatter(
-            '%(levelname)s - %(message)s'
-        )
-        hndl.setFormatter(formatter)
-        if not self.logger.handlers:
-            self.logger.addHandler(hndl)
 
         ############################################################################################
         #   Status
@@ -294,19 +308,35 @@ class SpectTestRun:
         self.break_str += "run\n"
 
     def set_fw_file(self, file: str):
+        if RELEASE_TAG in os.environ.keys():
+            self.info("Cannot set FW file when running Release tests")
+            return
         self.info(f"Seting FW file to: {file}")
         self.fw_file = file
 
+    def set_const_file(self, file: str):
+        if RELEASE_TAG in os.environ.keys():
+            self.info("Cannot set Constants file when running Release tests")
+            return
+        self.info(f"Seting Constants file to: {file}")
+        self.constfile = file
+
     def set_input_keymem_file(self, file: str):
         self.info(f"Seting input keymem file to: {file}")
+        if not os.path.exists(file):
+            self.critical(f"File {file} does not exist!")
         self.input_keymem_file = file
 
     def set_input_fault_file(self, file: str):
         self.info(f"Seting input fault file to: {file}")
+        if not os.path.exists(file):
+            self.critical(f"File {file} does not exist!")
         self.input_fault_file = file
 
     def set_input_context_file(self, file: str):
         self.info(f"Seting input context file to: {file}")
+        if not os.path.exists(file):
+            self.critical(f"File {file} does not exist!")
         self.input_context_file = file
 
     def run(self):
@@ -316,6 +346,11 @@ class SpectTestRun:
             self.cmd_file.write(self.break_str)
         self.cmd_exit()
         self.cmd_file.close()
+
+        if not os.path.exists(self.constfile):
+            self.critical(f"File {self.constfile} does not exist!")
+        if not os.path.exists(self.fw_file):
+            self.critical(f"File {self.fw_file} does not exist!")
 
         cmd = SpectTester.ISS
         fw_file_type = self.fw_file.split('.')[-1]
@@ -330,7 +365,7 @@ class SpectTestRun:
         cmd += f" --max-instr-cnt={self.max_instr_cnt}"
         cmd += f" --isa-version={SpectTestRun.ISA}"
         cmd += f" --first-address={hex(SpectTestRun.FIRST_ADDR)}"
-        cmd += f" --const-rom={SpectTestRun.DEFAULT_CONST_FILE}"
+        cmd += f" --const-rom={self.constfile}"
         cmd += f" --data-ram-out={self.data_out_file}"
         cmd += f" --emem-out={self.emem_out_file}"
         cmd += f" --dump-keymem={self.keymem_file}"
@@ -370,9 +405,9 @@ class SpectTester:
 
     ISS = "spect_iss"
     OPS_CONFIG = os.path.join(TS_REPO_ROOT, "spect_ops_config.yml")
-    TESTER_DIRT = os.path.join(TS_REPO_ROOT, "tests", "test_results")
+    TESTER_DIR = os.path.join(TS_REPO_ROOT, "tests", "test_results")
 
-    def __init__(self, test_name: str):
+    def __init__(self, test_name: str, spect_fw: SpectFw = SpectDefaultFW.Application):
         self.test_runs = {}
         self.test_name = test_name
         self.err_cnt = 0
@@ -383,7 +418,7 @@ class SpectTester:
         #   Create test directory
         ############################################################################################
         test_dir_name = f"test_{self.test_name}_{TIMESTAMP}"
-        self.test_dir = os.path.join(SpectTester.TESTER_DIRT, test_dir_name)
+        self.test_dir = os.path.join(SpectTester.TESTER_DIR, test_dir_name)
         os.system(f"rm -rf {self.test_dir}")
         os.makedirs(self.test_dir)
 
@@ -409,8 +444,19 @@ class SpectTester:
         args = parser.parse_args()
         seed = set_seed(args)
         rn.seed(seed)
-        print(f"Seed: {seed}")
-        self.logger.info(f"Seed: {seed}")
+        self.info(f"Seed {seed}", printout=True)
+
+        ############################################################################################
+        #   Set and log FW type
+        ############################################################################################
+        self.spect_fw = spect_fw
+        self.info(f"FW: {self.spect_fw.__name__}")
+
+        ############################################################################################
+        #   Check if Release Run
+        ############################################################################################
+        if RELEASE_TAG in os.environ.keys() and not os.path.exists(RELEASE_DIR):
+            self.critical("Release directory does not exists!")
 
     def print_baner(self, width: int = 50):
         s = self.test_name
@@ -421,6 +467,13 @@ class SpectTester:
 
         print(f"\033[94m{'*'*width}\033[00m")
         print(f"\033[94m*{before}{self.test_name}{after}*\033[00m")
+        if RELEASE_TAG in os.environ.keys():
+            s = get_release_version()
+            l = len(s)
+            num_spaces = (width-2-l)//2
+            before = ' '*num_spaces
+            after = ' '*(width-2-l-num_spaces)
+            print(f"\033[94m*{before}{s}{after}*\033[00m")
         print(f"\033[94m{'*'*width}\033[00m")
 
     def info(self, s: str, printout: bool = False):
@@ -442,13 +495,15 @@ class SpectTester:
 
     def critical(self, s: str, printout: bool = True):
         self.logger.critical(s)
-        sys.exit(1)
         if printout:
             print(f"\033[91mCritical: {s}\033[00m")
+        sys.exit(1)
 
-    def create_test_run(self, run_name: str) -> SpectTestRun:
+    def create_test_run(self, run_name: str, spect_fw: SpectFw = None) -> SpectTestRun:
         self.info(f"Creating TestRun: {run_name}")
-        self.test_runs[run_name] = (SpectTestRun(run_name, self.test_dir))
+        if spect_fw is None:
+            spect_fw = self.spect_fw
+        self.test_runs[run_name] = (SpectTestRun(self.test_name, run_name, self.test_dir, self.spect_fw))
         return self.test_runs[run_name]
 
     def get_test_run(self, run_name: str) -> SpectTestRun:

@@ -34,13 +34,13 @@ class SlotMetadataErrType(Enum):
     ORIGIN_ERR = 3
     CURVE_ERR  = 4
 
-def get_input_source(defines_set: set) -> Type[MemorySpace]:
+def get_input_source(defines_set: set) -> MemorySpace:
     if "IN_SRC_EN" in defines_set and rn.randint(0, 1):
         return SpectMem.DataRamIn
     else:
         return SpectMem.EmemIn
 
-def get_output_source(defines_set: set) -> Type[MemorySpace]:
+def get_output_source(defines_set: set) -> MemorySpace:
     if "OUT_SRC_EN" in defines_set and rn.randint(0, 1):
         return SpectMem.DataRamOut
     else:
