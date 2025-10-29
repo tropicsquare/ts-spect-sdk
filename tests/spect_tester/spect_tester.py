@@ -103,11 +103,11 @@ class SpectTestRun:
         self.cmd_file_path   = os.path.join(self.run_dir, 'iss_cmd')
         self.cmd_file        = open(self.cmd_file_path, 'w')
 
-        self.data_out_file   = os.path.join(self.run_dir, "data_out.hex")
-        self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex")
+        self.data_out_file   = os.path.join(self.run_dir, "data_out.hex32")
+        self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
         self.exec_info_file  = os.path.join(self.run_dir, "exec_info")
-        self.rng_file        = os.path.join(self.run_dir, "rng_file.hex")
+        self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
 
         self.spect_fw = spect_fw
@@ -374,7 +374,7 @@ class SpectTestRun:
 
         cmd = SpectTester.ISS
         fw_file_type = self.fw_file.split('.')[-1]
-        if fw_file_type == "hex":
+        if fw_file_type == "hex32":
             cmd += f" --instruction-mem={self.fw_file}"
             cmd += f" --parity={SpectTestRun.FW_PARITY}"
         elif fw_file_type == "s":
