@@ -8,6 +8,7 @@ import numpy as np
 import random as rn
 import struct
 import logging
+from enum import IntEnum
 
 from datetime import datetime
 
@@ -32,6 +33,16 @@ from .spect_default_fw import (
     RELEASE_DIR,
     get_release_version,
 )
+
+#############################################################
+#   ISS Verbosity Levels
+#############################################################
+class IssVerbosity(IntEnum):
+    NONE = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
 #############################################################
 #   TIMESTAMP
 #############################################################
@@ -58,7 +69,14 @@ class SpectTestRun:
     FIRST_ADDR      = 0x8000
     CFG_WORD_ADDR   = 0x0100
 
-    def __init__(self, test_name: str, run_name: str, test_dir: str, spect_fw: SpectFw):
+    def __init__(
+        self,
+        test_name: str,
+        run_name: str,
+        test_dir: str,
+        spect_fw: SpectFw,
+        iss_verbosity: IssVerbosity = IssVerbosity.HIGH
+    ):
         self.run_name = run_name
         self.run_dir = os.path.join(test_dir, self.run_name)
         os.system(f"mkdir {self.run_dir}")
@@ -132,11 +150,13 @@ class SpectTestRun:
         ############################################################################################
         self.max_instr_cnt   = 200_000
         self.break_str = ""
+        self.iss_verbosity = iss_verbosity
 
     def info(self, s: str, printout: bool = False):
-        self.logger.info(s)
-        if printout:
-            print(f"INFO: {s}")
+        if self.iss_verbosity > IssVerbosity.NONE:
+            self.logger.info(s)
+            if printout:
+                print(f"INFO: {s}")
 
     def warning(self, s: str, printout: bool = False):
         self.logger.warning(s)
@@ -371,7 +391,8 @@ class SpectTestRun:
         cmd += f" --dump-keymem={self.keymem_file}"
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
-        #cmd += f" --dump-exec-info={self.exec_info_file}"
+        cmd += f" --dump-exec-info={self.exec_info_file}"
+        cmd += f" --verbosity={self.iss_verbosity}"
 
         if self.input_keymem_file:
             cmd += f" --load-keymem={self.input_keymem_file}"
@@ -385,7 +406,7 @@ class SpectTestRun:
         cmd += f" --shell --cmd-file={self.cmd_file_path}"
         cmd += f" > {self.run_dir}/iss.log"
 
-        print(f"Running {self.run_name}")
+        self.info(f"Running {self.run_name}", printout=True)
         self.info(
             "Running SPECT_ISS\n"+
             "CMD: {}".format(cmd.replace(' ', '\n\t'))
@@ -407,7 +428,11 @@ class SpectTester:
     OPS_CONFIG = os.path.join(TS_REPO_ROOT, "spect_ops_config.yml")
     TESTER_DIR = os.path.join(TS_REPO_ROOT, "tests", "test_results")
 
-    def __init__(self, test_name: str, spect_fw: SpectFw = SpectDefaultFW.Application):
+    def __init__(
+        self,
+        test_name: str,
+        spect_fw: SpectFw = SpectDefaultFW.Application,
+    ):
         self.test_runs = {}
         self.test_name = test_name
         self.err_cnt = 0
@@ -499,11 +524,16 @@ class SpectTester:
             print(f"\033[91mCritical: {s}\033[00m")
         sys.exit(1)
 
-    def create_test_run(self, run_name: str, spect_fw: SpectFw = None) -> SpectTestRun:
+    def create_test_run(
+        self,
+        run_name: str,
+        spect_fw: SpectFw = None,
+        iss_verbosity: IssVerbosity = IssVerbosity.HIGH
+    ) -> SpectTestRun:
         self.info(f"Creating TestRun: {run_name}")
         if spect_fw is None:
             spect_fw = self.spect_fw
-        self.test_runs[run_name] = (SpectTestRun(self.test_name, run_name, self.test_dir, self.spect_fw))
+        self.test_runs[run_name] = (SpectTestRun(self.test_name, run_name, self.test_dir, self.spect_fw, iss_verbosity))
         return self.test_runs[run_name]
 
     def get_test_run(self, run_name: str) -> SpectTestRun:
