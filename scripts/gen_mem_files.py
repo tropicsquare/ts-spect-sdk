@@ -25,7 +25,7 @@ data = np.empty(mem_size)
 if len(mem["data"]) > mem_size:
     print("Memory size error")
 
-mem_hex_name = os.path.join(os.path.dirname(sys.argv[1]), mem["name"] + ".hex")
+mem_hex_name = os.path.join(os.path.dirname(sys.argv[1]), mem["name"] + ".hex32")
 mem_layout_name = os.path.join(os.path.dirname(sys.argv[1]), mem["name"] + "_layout.s")
 print("hexfile -> ", mem_hex_name)
 print("layout -> ", mem_layout_name)
@@ -39,8 +39,8 @@ mem_layout.write(
     "; \n"
     ";  Copyright © 2023 Tropic Square s.r.o. (https://tropicsquare.com/)            \n"
     ";  This work is subject to the license terms of the LICENSE.txt file in the root\n"
-    ";  directory of this source tree.                                               \n" 
-    ";  If a copy of the LICENSE file was not distributed with this work, you can    \n" 
+    ";  directory of this source tree.                                               \n"
+    ";  If a copy of the LICENSE file was not distributed with this work, you can    \n"
     ";  obtain one at (https://tropicsquare.com/license).                            \n"
     ";\n"
     f";   generated from {config_name.split('/')[-1]}\n"
