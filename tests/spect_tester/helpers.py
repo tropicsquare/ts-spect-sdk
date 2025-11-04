@@ -4,10 +4,13 @@ import subprocess
 import os
 import random as rn
 from enum import Enum
+import numpy as np
 from typing import Type
 import pandas as pd
 import time
+import datetime
 import sys
+import binascii
 
 from .spect_config import (
     KeySlotType,
@@ -18,6 +21,10 @@ from .spect_memory import (
     SpectMem,
 )
 
+from .spect_default_fw import (
+    SpectFw,
+    SpectDefaultFW,
+)
 
 def random_bytes(n: int):
     if n == 0:
@@ -30,6 +37,9 @@ def int2bytes(x: int, length: int = 32, endianity: str = 'little'):
 
 def bytes2int(b: bytes, endianity: str = 'little'):
     return int.from_bytes(b, endianity)
+
+def str2bytes(s: str):
+    return binascii.unhexlify(s)
 
 class SlotMetadataErrType(Enum):
     NO_ERR     = 0
@@ -125,6 +135,13 @@ def parse_exec_info(test_dir: str, run_name: str) -> pd.DataFrame:
 
     return pd.DataFrame(exec_info_list)
 
+def get_inst_code(fw_file: SpectFw, addr: int) -> int:
+    fw = np.loadtxt(fw_file.hex_file, dtype=str, usecols=0)
+    return int(fw[(addr-0x8000)//4], 16)
+
+def lines2str(lines: list, indent: int = 0):
+    return "\n".join(('\t'*indent)+line.rstrip("\n") for line in lines)
+
 # Custom Progress Bar, if TQDM is not available in the environment
 class ProgressBar:
     def __init__(self, it_cnt, it_name: str = "Iteration"):
@@ -144,8 +161,8 @@ class ProgressBar:
         progress_s = (
             '\r\033[K'
             f"{self.it_name} {self.it}/{self.it_cnt} {percent:0.0f} % | "
-            f"Elapsed {elapsed:0.0f} s | "
-            f"Remaining {remaining:0.0f} s\t"
+            f"Elapsed {datetime.timedelta(seconds=int(elapsed))} | "
+            f"Remaining {datetime.timedelta(seconds=int(remaining))}\t"
         )
         sys.stdout.write(progress_s)
         sys.stdout.flush()

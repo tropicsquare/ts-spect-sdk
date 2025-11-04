@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from binascii import unhexlify
+import numpy as np
 
 from .spect_config import (
     RAR_STACK_DEPTH,
@@ -10,14 +11,14 @@ from .spect_memory import SpectMem
 class SpectContext:
     def __init__(
         self,
-        gpr:            list  = None,
-        sha:            bytes = None,
-        tmac:           bytes = None,
-        rar_stack:      list  = None,
-        rar_pointer:    int   = None,
-        flags:          dict  = None,
-        data_in:        list  = None,
-        data_out:       list  = None
+        gpr:            np.ndarray  = None,
+        sha:            bytes       = None,
+        tmac:           bytes       = None,
+        rar_stack:      list        = None,
+        rar_pointer:    int         = None,
+        flags:          dict        = None,
+        data_in:        np.ndarray  = None,
+        data_out:       np.ndarray  = None
     ):
         self.gpr            = gpr
         self.sha            = sha
@@ -30,14 +31,14 @@ class SpectContext:
 
     def load(self, context_file: str):
 
-        self.gpr            = []
+        loc_gpr             = []
         self.sha            = b''
         self.tmac           = b''
         self.rar_stack      = []
         self.rar_pointer    = 0
         self.flags          = {"Z" : 0, "C" : 0, "E" : 0}
-        self.data_in        = []
-        self.data_out       = []
+        loc_data_in         = []
+        loc_data_out        = []
 
         with open(context_file, 'r') as ctx:
             data = ctx.read().split('\n')
@@ -54,7 +55,7 @@ class SpectContext:
                         i += 1
                         line = data[i]
                         r = int.from_bytes(unhexlify(line), 'big')
-                        self.gpr.append(r)
+                        loc_gpr.append(r)
 
                 if line == "SHA 512 context:":
                     i += 1  # skip next "**..**" line
@@ -66,11 +67,12 @@ class SpectContext:
 
                 if line[:4] == "TMAC":
                     i += 1 # skip next "**..**" line
-                    for _ in range(5):
-                        i += 1
-                        line = data[i]
-                        self.tmac += unhexlify(line)
-                    i += 3  # skip rate, byteIOIndex and squeezing
+                    if data[i+1] == "UNINITIALIZED\n":
+                        for _ in range(5):
+                            i += 1
+                            line = data[i]
+                            self.tmac += unhexlify(line)
+                        i += 3  # skip rate, byteIOIndex and squeezing
                     continue
 
                 if line == "RAR stack:":
@@ -106,7 +108,7 @@ class SpectContext:
                         i += 1
                         line = data[i]
                         val = int.from_bytes(unhexlify(line), 'big')
-                        self.data_in.append(val)
+                        loc_data_in.append(val)
 
                 if line == "Data RAM Out:":
                     i += 1
@@ -114,7 +116,11 @@ class SpectContext:
                         i += 1
                         line = data[i]
                         val = int.from_bytes(unhexlify(line), 'big')
-                        self.data_out.append(val)
+                        loc_data_out.append(val)
+
+                self.gpr = np.array(loc_gpr)
+                self.data_out = np.array(loc_data_out)
+                self.data_in = np.array(loc_data_in)
 
     def dump(self, context_file: str):
         def __coment_bar(s: str):
@@ -138,11 +144,14 @@ class SpectContext:
 
         # TMAC
         lines += __coment_bar("TMAC context: (state (5 lines), rate, byteIOIndex, squeezing)")
-        for i in range(5):
-            lines.append(f"{self.tmac[(i*10) : (i*10)+10].hex()}\n")
-        lines.append("0\n")
-        lines.append("0\n")
-        lines.append("0\n")
+        if len(self.tmac) == 0:
+            lines.append("UNINITIALIZED\n")
+        else:
+            for i in range(5):
+                lines.append(f"{self.tmac[(i*10) : (i*10)+10].hex()}\n")
+            lines.append("0\n")
+            lines.append("0\n")
+            lines.append("0\n")
 
         # RAR Stack
         lines += __coment_bar("RAR stack:")
@@ -170,3 +179,4 @@ class SpectContext:
 
         with open(context_file, 'w') as ctx:
             ctx.writelines(lines)
+

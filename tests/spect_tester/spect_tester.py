@@ -2,15 +2,18 @@
 
 import yaml
 import os
-import glob
+import subprocess
+import signal
 import sys
 import numpy as np
 import random as rn
 import struct
 import logging
+import shutil
 from enum import IntEnum
 
 from datetime import datetime
+from typing import Dict, List
 
 from argparse import (
     SUPPRESS,
@@ -59,6 +62,12 @@ parser.add_argument(
     default=SUPPRESS,
     help="Seed for randomization. Optional"
 )
+parser.add_argument(
+    "--test-vector-idx",
+    type=int,
+    default=SUPPRESS,
+    help="Index of the test vector to run"
+)
 
 #############################################################
 #   Test Run
@@ -97,6 +106,9 @@ class SpectTestRun:
         if not self.logger.handlers:
             self.logger.addHandler(hndl)
 
+        self.errors: List[str] = []
+        self.warnings: List[str] = []
+
         ############################################################################################
         #   Files
         ############################################################################################
@@ -109,6 +121,8 @@ class SpectTestRun:
         self.exec_info_file  = os.path.join(self.run_dir, "exec_info")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
+
+        self.iss_log_file    = os.path.join(self.run_dir, "iss.log")
 
         self.spect_fw = spect_fw
         if RELEASE_TAG in os.environ.keys():
@@ -145,12 +159,20 @@ class SpectTestRun:
         self.warn_cnt = 0
         self.err_cnt = 0
 
+        self.iss_fatal_lines = []
+        self.iss_fatals = 0
+
         ############################################################################################
         #   Other
         ############################################################################################
         self.max_instr_cnt   = 200_000
         self.break_str = ""
         self.iss_verbosity = iss_verbosity
+
+    def destroy_logger(self):
+        for handler in self.logger.handlers[:]:
+            handler.close()
+            self.logger.removeHandler(handler)
 
     def info(self, s: str, printout: bool = False):
         if self.iss_verbosity > IssVerbosity.NONE:
@@ -160,12 +182,14 @@ class SpectTestRun:
 
     def warning(self, s: str, printout: bool = False):
         self.logger.warning(s)
+        self.warnings.append(s)
         self.warn_cnt += 1
         if printout:
             print(f"\033[93mWarning: {s}\033[00m")
 
     def error(self, s: str, printout: bool = True):
         self.logger.error(s)
+        self.errors.append(s)
         self.err_cnt += 1
         if printout:
             print(f"\033[91mError: {s}\033[00m")
@@ -175,6 +199,14 @@ class SpectTestRun:
         if printout:
             print(f"\033[91mCritical: {s}\033[00m")
         sys.exit(1)
+
+    def print_warnings(self):
+        for s in self.warnings:
+            print(f"\033[93mWarning: {s}\033[00m")
+
+    def print_errors(self):
+        for s in self.warnings:
+            print(f"\033[91mError: {s}\033[00m")
 
     def status_summary(self):
         self.info(f"Number of Warnings: {self.warn_cnt}")
@@ -404,7 +436,7 @@ class SpectTestRun:
             cmd += f" --load-context={self.input_context_file}"
 
         cmd += f" --shell --cmd-file={self.cmd_file_path}"
-        cmd += f" > {self.run_dir}/iss.log"
+        cmd += f" > {self.iss_log_file}"
 
         self.info(f"Running {self.run_name}", printout=True)
         self.info(
@@ -412,11 +444,27 @@ class SpectTestRun:
             "CMD: {}".format(cmd.replace(' ', '\n\t'))
         )
 
-        if os.system(cmd):
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL
+            )
+            out, err = proc.communicate()
+        except KeyboardInterrupt:
+            proc.send_signal(signal.SIGINT)
+            proc.wait()
+
+        if proc.returncode != 0:
             self.critical("SPECT_ISS Failed")
-            sys.exit(2)
 
         self.info("SPECT_ISS finished")
+
+        with open(self.iss_log_file) as f:
+            self.iss_fatal_lines = [line for line in f if "FATAL:" in line]
+            self.iss_fatals = len(self.iss_fatal_lines)
 
         self.parse_data_out()
         self.parse_emem_out()
@@ -433,7 +481,7 @@ class SpectTester:
         test_name: str,
         spect_fw: SpectFw = SpectDefaultFW.Application,
     ):
-        self.test_runs = {}
+        self.test_runs: Dict[str, SpectTestRun] = {}
         self.test_name = test_name
         self.err_cnt = 0
 
@@ -462,6 +510,9 @@ class SpectTester:
         hndl.setFormatter(formatter)
         if not self.logger.handlers:
             self.logger.addHandler(hndl)
+
+        self.errors = []
+        self.warnings = []
 
         ############################################################################################
         #   Set and store seed
@@ -508,12 +559,14 @@ class SpectTester:
 
     def warning(self, s: str, printout: bool = False):
         self.logger.warning(s)
+        self.warnings.append(s)
         self.warn_cnt += 1
         if printout:
             print(f"\033[93mWarning: {s}\033[00m")
 
     def error(self, s: str, printout: bool = True):
         self.logger.error(s)
+        self.errors.append(s)
         self.err_cnt += 1
         if printout:
             print(f"\033[91mError: {s}\033[00m")
@@ -522,7 +575,6 @@ class SpectTester:
         self.logger.critical(s)
         if printout:
             print(f"\033[91mCritical: {s}\033[00m")
-        sys.exit(1)
 
     def create_test_run(
         self,
@@ -538,6 +590,11 @@ class SpectTester:
 
     def get_test_run(self, run_name: str) -> SpectTestRun:
         return self.test_runs[run_name]
+
+    def destroy_test_run(self, run_name: str):
+        self.info(f"Destroying TestRun: {run_name}")
+        shutil.rmtree(self.test_runs[run_name].run_dir)
+        del self.test_runs[run_name]
 
     def run_all(self):
         for run_name, run in self.test_runs.items():
@@ -557,6 +614,24 @@ class SpectTester:
 
         return err_cnt
 
+    def print_warnings(self):
+        for s in self.warnings:
+            print(f"\033[93mWarning: {s}\033[00m")
+        for run_name, run in self.test_runs.items():
+            if len(run.warnings) == 0:
+                continue
+            print(f"\t\033[93m{run_name} warnings\033[00m")
+            run.print_warnings()
+
+    def print_errors(self):
+        for s in self.warnings:
+            print(f"\033[91mError: {s}\033[00m")
+            for run_name, run in self.test_runs.items():
+                if len(run.errors) == 0:
+                    continue
+                print(f"\033[91m{run_name} errors\033[00m")
+                run.print_errors()
+
     @staticmethod
     def print_passed():
         print("\033[92m{}\033[00m".format("PASSED"))
@@ -572,3 +647,4 @@ class SpectTester:
     @staticmethod
     def print_test_skipped(text: str):
         print(f"\033[93mSKIPPED {text}\033[00m")
+
