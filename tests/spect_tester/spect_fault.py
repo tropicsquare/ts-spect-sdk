@@ -6,6 +6,7 @@ import numpy as np
 
 from .spect_instruction import (
     SpectInstruction,
+    SpectInstructionType,
     SpectInstructionJ,
     INST_MNEMO_MAP
 )
@@ -109,6 +110,15 @@ def generate_bitflip_faults(pd_inst) -> set:
             # Prune invalid or equal instructions
             if f_inst is None or f_inst == inst:
                 continue
+
+            # If it is a J instruction, fix its target to the effective address to reflect the HW
+            if f_inst.type == SpectInstructionType.J:
+                # If the effective address is outside instruction ram, prune
+                if f_inst.addr_effective > 3071:
+                    continue
+                else:
+                    f_inst.addr = (f_inst.addr_effective*4)+0x8000
+                    f_code = f_inst.assamble()
 
             faults_idxs = np.linspace(1, exec_cnt, min(exec_cnt, 5), dtype=int)
             f_list += [
