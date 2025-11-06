@@ -103,7 +103,7 @@ class SpectFault:
         with open(fault_file, 'w') as f:
             f.write(str(self)+'\n')
 
-def generate_skip_faults(pd_inst) -> set:
+def fault_generator_inst_skip(pd_inst, **kwargs) -> set:
     _, opcode, func = INST_MNEMO_MAP.code["NOP"]
     NOP = SpectInstructionJ(opcode, func, 0x0).assamble()
 
@@ -118,13 +118,15 @@ def generate_skip_faults(pd_inst) -> set:
 
     return set(f_list)
 
-def generate_bitflip_faults(pd_inst) -> set:
+def fault_generator_inst_bitflip(pd_inst, **kwargs) -> set:
     f_list = []
+    bitflips = kwargs['bitflips']
+    xor_mask = int('1'*bitflips, 2)
     for _, addr, exec_cnt, code, name in pd_inst.itertuples():
-        for i in range(31):
+        for i in range(32-bitflips+1):
             inst = SpectInstruction.disassamble(code)
 
-            f_code = code ^ (0b11 << i)
+            f_code = code ^ (xor_mask << i)
             f_inst = SpectInstruction.disassamble(f_code)
 
             # Prune invalid or equal instructions
