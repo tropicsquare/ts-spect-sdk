@@ -3,6 +3,8 @@
 
 import random as rn
 import numpy as np
+from enum import IntEnum
+
 
 from .spect_instruction import (
     SpectInstruction,
@@ -10,6 +12,24 @@ from .spect_instruction import (
     SpectInstructionJ,
     INST_MNEMO_MAP
 )
+
+class SpectFaultResponseSeverity(IntEnum):
+    OK      = 0
+    LOW     = 1
+    HIGH    = 2
+    FATAL   = 3
+
+SEVERITY_COLORS = {
+    SpectFaultResponseSeverity.OK : '\033[92m',
+    SpectFaultResponseSeverity.LOW : '\033[93m',
+    SpectFaultResponseSeverity.HIGH : '\033[93m',
+    SpectFaultResponseSeverity.FATAL : '\033[91m',
+}
+
+class SpectFaultResponseCategory:
+    def __init__(self, name: str, severity: SpectFaultResponseSeverity):
+        self.name = name
+        self.severity = severity
 
 class SpectFault:
 

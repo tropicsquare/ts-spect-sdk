@@ -62,12 +62,6 @@ parser.add_argument(
     default=SUPPRESS,
     help="Seed for randomization. Optional"
 )
-parser.add_argument(
-    "--test-vector-idx",
-    type=int,
-    default=SUPPRESS,
-    help="Index of the test vector to run"
-)
 
 #############################################################
 #   Test Run
