@@ -10,21 +10,22 @@ import random as rn
 import struct
 import logging
 import shutil
+
 from enum import IntEnum
-
 from datetime import datetime
-from typing import Dict, List
-
+from typing import (
+    Dict,
+    List,
+)
 from argparse import (
     SUPPRESS,
     ArgumentParser,
 )
-
 from .spect_config import (
-    TS_REPO_ROOT
+    TS_REPO_ROOT,
 )
 from .helpers import (
-    set_seed
+    set_seed,
 )
 from .spect_memory import SpectMem
 from .spect_context import SpectContext

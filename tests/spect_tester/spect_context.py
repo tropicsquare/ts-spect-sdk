@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from binascii import unhexlify
 import numpy as np
+
+from binascii import unhexlify
 
 from .spect_config import (
     RAR_STACK_DEPTH,
 )
-from .spect_memory import SpectMem
+from .spect_memory import (
+    SpectMem,
+)
 
 class SpectContext:
     def __init__(

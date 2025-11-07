@@ -5,7 +5,6 @@ import os
 import random as rn
 from enum import Enum
 import numpy as np
-from typing import Type
 import pandas as pd
 import time
 import datetime
@@ -23,7 +22,6 @@ from .spect_memory import (
 
 from .spect_default_fw import (
     SpectFw,
-    SpectDefaultFW,
 )
 
 def random_bytes(n: int):

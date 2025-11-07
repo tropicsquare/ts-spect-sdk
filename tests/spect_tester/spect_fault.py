@@ -5,12 +5,11 @@ import random as rn
 import numpy as np
 from enum import IntEnum
 
-
 from .spect_instruction import (
     SpectInstruction,
     SpectInstructionType,
     SpectInstructionJ,
-    INST_MNEMO_MAP
+    INST_MNEMO_MAP,
 )
 
 class SpectFaultResponseSeverity(IntEnum):
