@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from enum import IntEnum
 
 TS_REPO_ROOT = os.environ["TS_REPO_ROOT"]

@@ -3,6 +3,7 @@
 import re
 import struct
 import numpy as np
+
 from enum import IntEnum
 
 class KeyMem:

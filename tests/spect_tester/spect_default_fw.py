@@ -7,7 +7,7 @@ import subprocess
 from typing import Tuple
 
 from .spect_config import (
-    TS_REPO_ROOT
+    TS_REPO_ROOT,
 )
 
 #############################################################
