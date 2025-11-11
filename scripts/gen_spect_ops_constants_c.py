@@ -6,7 +6,7 @@ import os
 import argparse
 from datetime import datetime
 
-parser = argparse.ArgumentParser(description='TS SPECT headers generator')
+parser = argparse.ArgumentParser(description='TS SPECT C headers generator')
 
 parser.add_argument("-f", "--file", type=str, default="spect_ops_constants.h",
         help='Destination file name. Default:  "%(default)s"')
@@ -31,7 +31,7 @@ now = datetime.now()
 f.write("// Generated on " + now.strftime("%Y-%m-%d %H:%M:%S") + NL )
 script_path = os.path.abspath(__file__)
 script_name = os.path.basename(script_path)
-f.write("// By '" + script_name + "' from 'ts-spect-fw.git'" + NL)
+f.write("// By '" + script_name + "' from 'ts-spect-sdk.git'" + NL)
 f.write("// Do NOT modify this file, changes will be overwritten by next update" + NL)
 f.write(NL)
 

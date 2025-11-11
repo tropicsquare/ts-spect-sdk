@@ -3,88 +3,137 @@
 import yaml
 import sys
 import os
-import numpy as np
-import random as rn
-import binascii
+from pathlib import Path
+import argparse
+from datetime import date
 
-TS_REPO_ROOT = os.environ["TS_REPO_ROOT"]
+def main():
+    parser = argparse.ArgumentParser(description='TS SPECT Const ROM generator')
+    parser.add_argument("-c", "--cfg", type=str, required=True,
+            help='Configuration input file name.')
+    args = parser.parse_args()
 
-def addr_sort(it):
-    return it["address"]
+    # --- 1. Get Environment Variable ---
+    try:
+        ts_repo_root = os.environ["TS_REPO_ROOT"]
+    except KeyError:
+        print("Error: TS_REPO_ROOT environment variable not set.", file=sys.stderr)
+        sys.exit(1)
 
-config_name = sys.argv[1]
+    # --- 2. Setup Paths ---
+    cfg_file_path = Path(args.cfg)
+    if not cfg_file_path.is_absolute():
+        cfg_file_path = Path(ts_repo_root) / cfg_file_path
 
-with open(config_name, 'r') as mem_file:
-    mem = yaml.safe_load(mem_file)
+    base_name = cfg_file_path.stem
+    base_dir = cfg_file_path.parent
 
-mem_size = int((mem["end_addr"] - mem["start_addr"] + 1) / 32)
+    mem_hex_path = base_dir / f"{base_name}.hex32"
+    mem_layout_path = base_dir / f"{base_name}_layout.s"
 
-data = np.empty(mem_size)
+    print(f"Config  -> {cfg_file_path}")
+    print(f"Hexfile -> {mem_hex_path}")
+    print(f"Layout  -> {mem_layout_path}")
 
+    # --- 3. Load Config and Calculate Size ---
+    with open(cfg_file_path, 'r') as cfg_file:
+        cfg = yaml.safe_load(cfg_file)
 
-if len(mem["data"]) > mem_size:
-    print("Memory size error")
+    start_addr = cfg["start_addr"]
+    end_addr = cfg["end_addr"]
+    mem_size = (end_addr + 1 - start_addr) // 32  # Size in 32-byte slots
 
-mem_hex_name = os.path.join(os.path.dirname(sys.argv[1]), mem["name"] + ".hex32")
-mem_layout_name = os.path.join(os.path.dirname(sys.argv[1]), mem["name"] + "_layout.s")
-print("hexfile -> ", mem_hex_name)
-print("layout -> ", mem_layout_name)
-mem_hex = open(mem_hex_name, "w")
-mem_layout = open(mem_layout_name, "w")
+    all_items = cfg.get("data", [])
+    if len(all_items) > mem_size:
+        print(f"Error: Config file data ({len(all_items)} items) exceeds the memory size ({mem_size} slots).", file=sys.stderr)
+        print(f"Max size  : {mem_size*32}B")
+        print(f"Data size : {len(all_items)*32}B")
+        sys.exit(1)
 
-mem_layout.write(
-    "; ==============================================================================\n"
-    f";   file    mem_layouts/{mem_layout_name.split('/')[-1]}\n"
-    ";   author  tropicsquare s. r. o.\n"
-    "; \n"
-    ";  Copyright © 2023 Tropic Square s.r.o. (https://tropicsquare.com/)            \n"
-    ";  This work is subject to the license terms of the LICENSE.txt file in the root\n"
-    ";  directory of this source tree.                                               \n"
-    ";  If a copy of the LICENSE file was not distributed with this work, you can    \n"
-    ";  obtain one at (https://tropicsquare.com/license).                            \n"
-    ";\n"
-    f";   generated from {config_name.split('/')[-1]}\n"
-    "; ==============================================================================\n"
-)
+    # --- 4. Process Data (Place Addressed and Unaddressed Items) ---
+    data_slots = [None] * mem_size
+    unplaced_items = []
 
-data = np.empty(mem_size, dtype=dict)
+    # First pass: place items with fixed addresses
+    for item in all_items:
+        item.setdefault("value", 0)  # Set default value if missing
 
-for d in mem["data"]:
-    if "value" not in d.keys():
-        d["value"] = 0
-    if "is_string" in d.keys() and d["is_string"]:
-        d["value"] = int.from_bytes(binascii.unhexlify(d["value"]), 'little')
+        if "address" in item:
+            addr = item["address"]
 
-for d in mem["data"]:
-    if "address" in d.keys():
-        if d["address"] % 32 != 0:
-            print(d["name"], "address error.")
-        data[int(d["address"]/32)] = {
-            "name" : d["name"],
-            "address" : d["address"],
-            "value" : d["value"]
-        }
+            if addr % 32 != 0:
+                print(f"Error: Address for '{item['name']}' (0x{addr:X}) is not 32-byte aligned.", file=sys.stderr)
+                sys.exit(1)
 
-for d in mem["data"]:
-    if "address" not in d.keys():
-        for i in range(len(mem["data"])):
-            if data[i] == None:
-                data[i] = {
-                    "name" : d["name"],
-                    "address" : mem["start_addr"] + i*32,
-                    "value" : d["value"]
-                }
-                break
+            if not (start_addr <= addr <= end_addr):
+                print(f"Error: Address for '{item['name']}' (0x{addr:X}) is outside memory range [0x{start_addr:X}, 0x{end_addr:X}].", file=sys.stderr)
+                sys.exit(1)
 
-for d in data:
-    if d == None:
-        for i in range(8):
-            mem_hex.write("00000000\n")
-    else:
-        for i in range(8):
-            mem_hex.write(format((d["value"] >> i*32) & 0xffffffff, '08X') + "\n")
+            index = (addr - start_addr) // 32
 
-        mem_layout.write("{} .eq 0x{}\n".format(d["name"], format(d["address"], '04X')))
+            if data_slots[index] is not None:
+                print(f"Error: Address collision at 0x{addr:X} between '{data_slots[index]['name']}' and '{item['name']}'.", file=sys.stderr)
+                sys.exit(1)
 
-mem_hex.close()
-mem_layout.close()
+            data_slots[index] = item
+        else:
+            unplaced_items.append(item)
+
+    # Second pass: place remaining items in first-available slots
+    slot_iter = 0
+    for item in unplaced_items:
+        # Find next free slot
+        while slot_iter < mem_size and data_slots[slot_iter] is not None:
+            slot_iter += 1
+
+        if slot_iter == mem_size:
+            print(f"Error: Not enough space in memory to place unaddressed item '{item['name']}'.", file=sys.stderr)
+            sys.exit(1)
+
+        # Assign address and place item
+        addr = start_addr + slot_iter * 32
+        item["address"] = addr
+        data_slots[slot_iter] = item
+
+    # --- 5. Write Output Files ---
+    try:
+        with open(mem_hex_path, "w") as f_hex, open(mem_layout_path, "w") as f_layout:
+            # Write layout header
+            f_layout.write(
+f"""; ==============================================================================
+;   file    mem_layouts/{mem_layout_path.name}
+;   author  Tropic Square s.r.o.
+;
+;  Copyright © {date.today().year} Tropic Square s.r.o. (https://tropicsquare.com/)
+;  This work is subject to the license terms of the LICENSE.txt file in the root
+;  directory of this source tree.
+;  If a copy of the LICENSE file was not distributed with this work, you
+;  obtain one at (https://tropicsquare.com/license)
+;
+;   generated from {cfg_file_path.name}
+; ==============================================================================
+"""
+            )
+
+            # Write data for both files
+            for item in data_slots:
+                if item is None:
+                    # Empty slot
+                    value = 0
+                else:
+                    # Filled slot
+                    value = item["value"]
+                    # Write layout entry
+                    f_layout.write(f"{item['name']} .eq 0x{item['address']:04X}\n")
+
+                # Write 8 32-bit (4-byte) words to hex file (total 32 bytes)
+                for i in range(8):
+                    word = (value >> (i * 32)) & 0xFFFFFFFF
+                    f_hex.write(f"{word:08X}\n")
+
+    except IOError as e:
+        print(f"Error writing output file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
