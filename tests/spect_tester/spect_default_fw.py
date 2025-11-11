@@ -55,7 +55,7 @@ class SpectDefaultFW:
     class Application(SpectFw):
         s_file = os.path.join(TS_REPO_ROOT, "src", "main.s")
         hex_file = os.path.join(TS_REPO_ROOT, "build", "main.hex32")
-        const_rom_file = os.path.join(TS_REPO_ROOT, "build", "constants.hex32")
+        const_rom_file = os.path.join(TS_REPO_ROOT, "build", "spect_const_rom.hex32")
 
         @classmethod
         def get_release_files(cls) -> Tuple[str, str]:
@@ -67,8 +67,8 @@ class SpectDefaultFW:
 
     class Bootloader(SpectFw):
         s_file = os.path.join(TS_REPO_ROOT, "src", "boot_main.s")
-        hex_file = os.path.join(TS_REPO_ROOT, "build_boot", "boot_main.hex32")
-        const_rom_file = os.path.join(TS_REPO_ROOT, "build_boot", "constants.hex32")
+        hex_file = os.path.join(TS_REPO_ROOT, "build", "boot_main.hex32")
+        const_rom_file = os.path.join(TS_REPO_ROOT, "build", "spect_const_rom.hex32")
 
         @classmethod
         def get_release_files(cls) -> Tuple[str, str]:
