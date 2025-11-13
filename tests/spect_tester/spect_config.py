@@ -5,8 +5,6 @@ import os
 from enum import IntEnum
 
 TS_REPO_ROOT = os.environ["TS_REPO_ROOT"]
-SPECT_FW_MAIN = TS_REPO_ROOT+"/src/main.s"
-
 RAR_STACK_DEPTH = 5
 
 class EccSlot:

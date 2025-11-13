@@ -11,6 +11,12 @@ import datetime
 import sys
 import binascii
 
+from typing import (
+    Type,
+    Literal,
+    Optional,
+)
+
 from .spect_config import (
     KeySlotType,
     CurveType,
@@ -30,10 +36,10 @@ def random_bytes(n: int):
     else:
         return rn.getrandbits(n*8).to_bytes(n, 'little')
 
-def int2bytes(x: int, length: int = 32, endianity: str = 'little'):
+def int2bytes(x: int, length: int = 32, endianity: Literal['little', 'big'] = 'little'):
     return int.to_bytes(x, length, endianity)
 
-def bytes2int(b: bytes, endianity: str = 'little'):
+def bytes2int(b: bytes, endianity: Literal['little', 'big'] = 'little'):
     return int.from_bytes(b, endianity)
 
 def str2bytes(s: str):
@@ -46,13 +52,13 @@ class SlotMetadataErrType(Enum):
     ORIGIN_ERR = 3
     CURVE_ERR  = 4
 
-def get_input_source(defines_set: set) -> MemorySpace:
+def get_input_source(defines_set: set) -> Type[MemorySpace]:
     if "IN_SRC_EN" in defines_set and rn.randint(0, 1):
         return SpectMem.DataRamIn
     else:
         return SpectMem.EmemIn
 
-def get_output_source(defines_set: set) -> MemorySpace:
+def get_output_source(defines_set: set) -> Type[MemorySpace]:
     if "OUT_SRC_EN" in defines_set and rn.randint(0, 1):
         return SpectMem.DataRamOut
     else:
@@ -98,7 +104,7 @@ def get_release_version():
         print("Git command not found. Make sure Git is installed.")
         return None
 
-def get_main_defines(main_file: str) -> set:
+def get_main_defines(main_file: str) -> Optional[set]:
     defines_set = set()
     with open(main_file, 'r') as fmain:
         in_defines = False

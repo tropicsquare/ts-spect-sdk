@@ -15,13 +15,13 @@ class SpectContext:
     def __init__(
         self,
         gpr:            np.ndarray  = None,
-        sha:            bytes       = None,
-        tmac:           bytes       = None,
-        rar_stack:      list        = None,
-        rar_pointer:    int         = None,
-        flags:          dict        = None,
+        sha:            bytes       = None, # type: ignore
+        tmac:           bytes       = None, # type: ignore
+        rar_stack:      list        = None, # type: ignore
+        rar_pointer:    int         = None, # type: ignore
+        flags:          dict        = None, # type: ignore
         data_in:        np.ndarray  = None,
-        data_out:       np.ndarray  = None
+        data_out:       np.ndarray  = None,
     ):
         self.gpr            = gpr
         self.sha            = sha

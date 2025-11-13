@@ -4,6 +4,7 @@ import re
 import struct
 import numpy as np
 
+from typing import Optional
 from enum import IntEnum
 
 class KeyMem:
@@ -56,7 +57,7 @@ class KeyMem:
                 self.kmem_data[ktype][slot][offset] = d
                 offset += 1
 
-    def read(self, ktype: int, slot: int, offset: int, size: int) -> bytes:
+    def read(self, ktype: int, slot: int, offset: int, size: int) -> Optional[bytes]:
         assert size % 4 == 0
         if self.kmem_status[ktype][slot] == KeyMem.SlotStatus.EMPTY:
             return None

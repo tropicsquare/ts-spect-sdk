@@ -1,7 +1,6 @@
 
 # -*- coding: utf-8 -*-
 
-import random as rn
 import numpy as np
 from enum import IntEnum
 
@@ -78,7 +77,7 @@ class SpectFault:
         elif self.inst_exec_cnt != other.inst_exec_cnt:
             return self.inst_exec_cnt > other.inst_exec_cnt
         elif self.fault_data != other.fault_data:
-            self.fault_data > other.fault_data
+            return self.fault_data > other.fault_data
         return False
 
     def __lt__(self, other):
@@ -90,7 +89,7 @@ class SpectFault:
         elif self.inst_exec_cnt != other.inst_exec_cnt:
             return self.inst_exec_cnt < other.inst_exec_cnt
         elif self.fault_data != other.fault_data:
-            self.fault_data < other.fault_data
+            return self.fault_data < other.fault_data
         return False
 
     # Hash a tuple of the same attributes used in __eq__
@@ -133,7 +132,7 @@ def fault_generator_inst_bitflip(pd_inst, **kwargs) -> set:
                 continue
 
             # If it is a J instruction, fix its target to the effective address to reflect the HW
-            if f_inst.type == SpectInstructionType.J:
+            if type(f_inst) == SpectInstructionJ:
                 # If the effective address is outside instruction ram, prune
                 if f_inst.addr_effective > 3071:
                     continue

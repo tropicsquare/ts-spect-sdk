@@ -16,6 +16,8 @@ from datetime import datetime
 from typing import (
     Dict,
     List,
+    Type,
+    Optional,
 )
 from argparse import (
     SUPPRESS,
@@ -78,7 +80,7 @@ class SpectTestRun:
         test_name: str,
         run_name: str,
         test_dir: str,
-        spect_fw: SpectFw,
+        spect_fw: Type[SpectFw],
         iss_verbosity: IssVerbosity = IssVerbosity.HIGH
     ):
         self.run_name = run_name
@@ -139,7 +141,7 @@ class SpectTestRun:
         self.outsrc   = SpectMem.EmemOut.src
         self.insize   = 0
 
-        self.op_dict  = None
+        self.op_dict  = {}
 
         ############################################################################################
         #   Input Files
@@ -276,15 +278,15 @@ class SpectTestRun:
         for i, w in enumerate(words):
             self.write_word(addr+(i*4), w)
 
-    def read_word(self, addr: int) -> int:
+    def read_word(self, addr: int) -> Optional[int]:
         mem_off = (addr & 0xFFF) // 4
 
-        if SpectMem.DataRamOut.check_address(addr):
+        if self.data_out is not None and SpectMem.DataRamOut.check_address(addr):
             return self.data_out[mem_off]
-        elif SpectMem.EmemOut.check_address(addr):
+        elif self.emem_out is not None and SpectMem.EmemOut.check_address(addr):
             return self.emem_out[mem_off]
         else:
-            self.warning(f"Address {hex(addr)} is invalid output address!")
+            self.warning(f"Failed to read address {hex(addr)}!")
             return None
 
     def read_bytes(self, addr: int, lenght: int) -> bytes:
@@ -292,12 +294,12 @@ class SpectTestRun:
 
         mem_off = (addr & 0xFFF) // 4
 
-        if SpectMem.DataRamOut.check_address(addr):
+        if self.data_out is not None and SpectMem.DataRamOut.check_address(addr):
             data = self.data_out[mem_off:mem_off+(lenght//4)]
-        elif SpectMem.EmemOut.check_address(addr):
+        elif self.emem_out is not None and SpectMem.EmemOut.check_address(addr):
             data = self.emem_out[mem_off:mem_off+(lenght//4)]
         else:
-            self.warning(f"Address {hex(addr)} is invalid output address!")
+            self.warning(f"Failed to read address {hex(addr)}!")
             data = []
 
         return b''.join(struct.pack('<I', d) for d in data)
@@ -313,7 +315,7 @@ class SpectTestRun:
         cfg_word = self.op_dict["id"] + (self.outsrc << 8) + (self.insrc << 12) + (self.insize << 16)
         self.write_word(SpectTestRun.CFG_WORD_ADDR, cfg_word)
 
-    def set_rng(self, rng_list: list = None):
+    def set_rng(self, rng_list: Optional[list] = None):
         self.info("Seting RNG")
         if rng_list is None:
             rng_list = [rn.randint(0, 2**256 - 1) for _ in range(32)]
@@ -325,6 +327,8 @@ class SpectTestRun:
 
     def get_res_word(self):
         res_word = self.read_word(0x1100)
+        assert res_word is not None
+
         status = res_word & 0xFF
         data_out_size = (res_word >> 16) & 0xFFFF
         return status, data_out_size
@@ -338,9 +342,11 @@ class SpectTestRun:
             self.cmd_file.write(f"set keymem[{ktype}][{slot}][{offset+i}] 0x{word:08x}\n")
 
     def key_slot_status(self, ktype, slot) -> KeyMem.SlotStatus:
+        assert self.keymem is not None
         return self.keymem.slot_status(ktype, slot)
 
-    def read_key(self, ktype: int, slot: int, offset: int, size: int = 32) -> bytes:
+    def read_key(self, ktype: int, slot: int, offset: int, size: int = 32) -> Optional[bytes]:
+        assert self.keymem is not None
         self.info(f"Reading key: Type {ktype}, Slot {slot}, Offset {offset}")
         return self.keymem.read(ktype, slot, offset, size)
 
@@ -439,6 +445,8 @@ class SpectTestRun:
             "CMD: {}".format(cmd.replace(' ', '\n\t'))
         )
 
+        proc = None
+        out, err = b"", b""
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -449,10 +457,11 @@ class SpectTestRun:
             )
             out, err = proc.communicate()
         except KeyboardInterrupt:
-            proc.send_signal(signal.SIGINT)
-            proc.wait()
+            if proc:
+                proc.send_signal(signal.SIGINT)
+                proc.wait()
 
-        if proc.returncode != 0:
+        if proc and proc.returncode != 0:
             self.critical("SPECT_ISS Failed")
 
         self.info("SPECT_ISS finished")
@@ -474,7 +483,7 @@ class SpectTester:
     def __init__(
         self,
         test_name: str,
-        spect_fw: SpectFw = SpectDefaultFW.Application,
+        spect_fw: Type[SpectFw] = SpectDefaultFW.Application,
     ):
         self.test_runs: Dict[str, SpectTestRun] = {}
         self.test_name = test_name
@@ -540,6 +549,8 @@ class SpectTester:
         print(f"\033[94m*{before}{self.test_name}{after}*\033[00m")
         if RELEASE_TAG in os.environ.keys():
             s = get_release_version()
+            assert s is not None
+
             l = len(s)
             num_spaces = (width-2-l)//2
             before = ' '*num_spaces
@@ -574,7 +585,7 @@ class SpectTester:
     def create_test_run(
         self,
         run_name: str,
-        spect_fw: SpectFw = None,
+        spect_fw: Optional[Type[SpectFw]] = None,
         iss_verbosity: IssVerbosity = IssVerbosity.HIGH
     ) -> SpectTestRun:
         self.info(f"Creating TestRun: {run_name}")
