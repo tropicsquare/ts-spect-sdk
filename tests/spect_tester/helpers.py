@@ -104,7 +104,7 @@ def get_release_version():
         print("Git command not found. Make sure Git is installed.")
         return None
 
-def get_main_defines(main_file: str) -> Optional[set]:
+def get_main_defines(main_file: str) -> set:
     defines_set = set()
     with open(main_file, 'r') as fmain:
         in_defines = False
@@ -116,7 +116,8 @@ def get_main_defines(main_file: str) -> Optional[set]:
                 if line.startswith(".define"):
                     defines_set.add(line.split()[1])
                 elif "DEFINES END" in line:
-                    return defines_set
+                    break
+    return defines_set
 
 def set_seed(args) -> int:
     if hasattr(args, "seed"):
