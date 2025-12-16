@@ -34,7 +34,6 @@ from .spect_context import SpectContext
 from .key_memory import KeyMem
 from .spect_default_fw import (
     SpectFw,
-    SpectDefaultFW,
     RELEASE_TAG,
     RELEASE_DIR,
     get_release_version,
@@ -483,7 +482,7 @@ class SpectTester:
     def __init__(
         self,
         test_name: str,
-        spect_fw: Type[SpectFw] = SpectDefaultFW.Application,
+        spect_fw: Type[SpectFw],
     ):
         self.test_runs: Dict[str, SpectTestRun] = {}
         self.test_name = test_name
