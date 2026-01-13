@@ -140,6 +140,12 @@ def parse_exec_info(test_dir: str, run_name: str) -> pd.DataFrame:
 
     return pd.DataFrame(exec_info_list)
 
+def parse_mem_access_trace(mem_access_file: str) -> pd.DataFrame:
+    df = pd.read_csv(mem_access_file, delimiter=':')
+    df["PC"] = df["PC"].apply(lambda x: int(x, 0))
+    df["ADDR"] = df["ADDR"].apply(lambda x: int(x, 0))
+    return df
+
 def get_inst_code(fw_file: SpectFw, addr: int) -> int:
     fw = np.loadtxt(fw_file.hex_file, dtype=str, usecols=0)
     return int(fw[(addr-0x8000)//4], 16)

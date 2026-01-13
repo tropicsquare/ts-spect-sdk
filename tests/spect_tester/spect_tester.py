@@ -115,6 +115,7 @@ class SpectTestRun:
         self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
         self.exec_info_file  = os.path.join(self.run_dir, "exec_info")
+        self.mem_access_file = os.path.join(self.run_dir, "mem_access.csv")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
 
@@ -391,7 +392,7 @@ class SpectTestRun:
             self.critical(f"File {file} does not exist!")
         self.input_context_file = file
 
-    def run(self):
+    def run(self, **kwargs):
         self.set_cfg_word()
         self.cmd_run()
         if self.break_str != "":
@@ -434,6 +435,9 @@ class SpectTestRun:
 
         if self.input_context_file:
             cmd += f" --load-context={self.input_context_file}"
+
+        for arg, val in kwargs.items():
+            cmd += f" --{arg.replace('_', '-')}={val}"
 
         cmd += f" --shell --cmd-file={self.cmd_file_path}"
         cmd += f" > {self.iss_log_file}"
