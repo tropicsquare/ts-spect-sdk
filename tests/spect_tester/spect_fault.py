@@ -209,11 +209,13 @@ class SpectFaultMemory(SpectFault, class_id=SpectFaultType.MEMORY):
 ####################################################################################################
 #   Fault Generators
 ####################################################################################################
-def fault_generator_inst_skip(pd_inst, **kwargs) -> set:
+def fault_generator_inst_skip(**kwargs) -> set:
+    df_inst = kwargs['df_inst']
+
     f_list = []
     skip_cnt = kwargs['skip_cnt']
 
-    for _, addr, exec_cnt, code, name in pd_inst.itertuples():
+    for _, addr, exec_cnt, code, name in df_inst.itertuples():
         faults_idxs = np.linspace(1, exec_cnt, min(exec_cnt, 5), dtype=int)
         f_list += [
             SpectFaultPC(
