@@ -3,11 +3,14 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
 
+def bitslice_get_mask(high, low) -> int:
+    return (1 << (high - low + 1)) - 1
+
 def bitslice_get(x: int, slice: tuple) -> int:
-    return (x >> slice[1]) & (2**(slice[0]-slice[1]+1)-1)
+    return (x >> slice[1]) & bitslice_get_mask(slice[0], slice[1])
 
 def bitslice_set(x: int, v: int, slice: tuple) -> int:
-    v = v & (2**(slice[0]-slice[1]+1)-1)
+    v = v & bitslice_get_mask(slice[0], slice[1])
     v = v << slice[1]
     return x | v
 
@@ -86,6 +89,68 @@ INST_MNEMO_MAP = TwoWayMap({
     'NOP'       : (SpectInstructionType.J, 0b1010,   0b111),
 })
 
+INST_INFO = {
+    "ADD"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "SUB"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "CMP"       : {'OPERAND_MASK': 0b011, 'R31_DEPEND' : False  },
+    "AND"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "OR"        : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "XOR"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "NOT"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "SBIT"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "CBIT"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "LSL"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "LSR"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ROL"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ROR"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ROL8"      : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ROR8"      : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ROLIN"     : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "RORIN"     : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "SWE"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "MOV"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "LDR"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "STR"       : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "CSWAP"     : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ZSWAP"     : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "HASH"      : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "GRV"       : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "SCB"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : True   },
+    "MUL25519"  : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "MUL256"    : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "ADDP"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : True   },
+    "SUBP"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : True   },
+    "MULP"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : True   },
+    "REDP"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : True   },
+    "TMAC_IT"   : {'OPERAND_MASK': 0b010, 'R31_DEPEND' : False  },
+    "TMAC_UP"   : {'OPERAND_MASK': 0b010, 'R31_DEPEND' : False  },
+    "TMAC_RD"   : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "ADDI"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "SUBI"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "CMPI"      : {'OPERAND_MASK': 0b011, 'R31_DEPEND' : False  },
+    "ANDI"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "ORI"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "XORI"      : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "MOVI"      : {'OPERAND_MASK': 0b101, 'R31_DEPEND' : False  },
+    "HASH_IT"   : {'OPERAND_MASK': 0b000, 'R31_DEPEND' : False  },
+    "TMAC_IS"   : {'OPERAND_MASK': 0b011, 'R31_DEPEND' : False  },
+    "LDK"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "STK"       : {'OPERAND_MASK': 0b111, 'R31_DEPEND' : False  },
+    "KBO"       : {'OPERAND_MASK': 0b011, 'R31_DEPEND' : False  },
+    "LD"        : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "ST"        : {'OPERAND_MASK': 0b110, 'R31_DEPEND' : False  },
+    "CALL"      : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "RET"       : {'OPERAND_MASK': 0b000, 'R31_DEPEND' : False  },
+    "BRZ"       : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "BRNZ"      : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "BRC"       : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "BRNC"      : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "BRE"       : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "BRNE"      : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "JMP"       : {'OPERAND_MASK': 0b100, 'R31_DEPEND' : False  },
+    "END"       : {'OPERAND_MASK': 0b000, 'R31_DEPEND' : False  },
+    "NOP"       : {'OPERAND_MASK': 0b000, 'R31_DEPEND' : False  },
+}
 
 class SpectInstruction(ABC):
 
@@ -125,7 +190,7 @@ class SpectInstruction(ABC):
         opcode = bitslice_get(inst_code, SpectInstruction.OPCODE)
         func = bitslice_get(inst_code, SpectInstruction.FUNC)
 
-        if (itype, opcode, func) not in INST_MNEMO_MAP.mnemo.keys():
+        if (itype, opcode, func) not in INST_MNEMO_MAP.mnemo:
             return None
 
         if itype == SpectInstructionType.J:

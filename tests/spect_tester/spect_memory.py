@@ -39,3 +39,9 @@ class SpectMem:
         src     = 0x5
         depth   = 32
         size    = 128
+
+    class InstructionRam(MemorySpace):
+        base    = 0x8000
+        src     = 0x8
+        depth   = 3072
+        size    = 12288

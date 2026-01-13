@@ -5,11 +5,20 @@ import numpy as np
 from enum import IntEnum
 from abc import ABC
 import functools
+import random as rn
+import itertools
 
 from .spect_instruction import (
     SpectInstruction,
+    SpectInstructionR,
+    SpectInstructionI,
     SpectInstructionJ,
+    SpectInstructionM,
     INST_MNEMO_MAP,
+    INST_INFO,
+)
+from .spect_memory import (
+    SpectMem
 )
 
 class SpectFaultResponseSeverity(IntEnum):
@@ -229,14 +238,16 @@ def fault_generator_inst_skip(**kwargs) -> set:
 
     return set(f_list)
 
-def fault_generator_inst_bitflip(pd_inst, **kwargs) -> set:
+def fault_generator_inst_bitflip(**kwargs) -> set:
+    df_inst = kwargs['df_inst']
+
     f_list = []
     bitflips = kwargs['bitflips']
     xor_mask = int('1'*bitflips, 2)
 
-    for _, addr, exec_cnt, code, name in pd_inst.itertuples():
+    for _, addr, exec_cnt, code, name in df_inst.itertuples():
+        inst = SpectInstruction.disassamble(code)
         for i in range(32-bitflips+1):
-            inst = SpectInstruction.disassamble(code)
 
             f_code = code ^ (xor_mask << i)
             f_inst = SpectInstruction.disassamble(f_code)
@@ -248,10 +259,10 @@ def fault_generator_inst_bitflip(pd_inst, **kwargs) -> set:
             # If it is a J instruction, fix its target to the effective address to reflect the HW
             if type(f_inst) == SpectInstructionJ:
                 # If the effective address is outside instruction ram, prune
-                if f_inst.addr_effective > 3071:
+                if f_inst.addr_effective >= SpectMem.InstructionRam.depth:
                     continue
                 else:
-                    f_inst.addr = (f_inst.addr_effective*4)+0x8000
+                    f_inst.addr = SpectMem.InstructionRam.base+(f_inst.addr_effective*4)
                     f_code = f_inst.assamble()
 
             faults_idxs = np.linspace(1, exec_cnt, min(exec_cnt, 5), dtype=int)
@@ -267,11 +278,105 @@ def fault_generator_inst_bitflip(pd_inst, **kwargs) -> set:
 
     return set(f_list)
 
-def fault_generator_gpr_bitflip(pd_inst, **kwargs) -> set:
-    raise NotImplementedError
+def fault_generator_gpr_bitflip(**kwargs) -> set:
+    f_list = []
 
-def fault_generator_memory_bitflip(pd_inst, **kwargs) -> set:
-    raise NotImplementedError
+    df_inst = kwargs['df_inst']
+    is_transient = kwargs['is_transient']
+    is_transient_str = ['persistent', 'transient'][int(is_transient)]
+    bitflips = kwargs['bitflips']
+    xor_mask = int('1'*bitflips, 2)
+
+    for _, addr, exec_cnt, code, name in df_inst.itertuples():
+        inst = SpectInstruction.disassamble(code)
+        assert inst is not None
+        if (isinstance(inst, SpectInstructionM) or
+            isinstance(inst, SpectInstructionJ)
+        ):
+            continue
+
+        inst_info = INST_INFO[name]
+        faults_idxs = set([1, rn.randint(1, exec_cnt), exec_cnt])
+
+        # faults to op3
+        if inst_info['OPERAND_MASK'] & 0b001 != 0 and isinstance(inst, SpectInstructionR):
+            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256), 4)    # 4 LSBs and 4 random
+            f_list += [
+                SpectFaultGPR(
+                    inst_addr = addr,
+                    inst_exec_cnt = fidx,
+                    gpr_index = inst.op3,
+                    bitflip_pos = bitflip_pos,
+                    bitflip_mask = xor_mask,
+                    is_transient = is_transient,
+                    description = f"gpr_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_op3_{bitflip_pos}"
+                )
+                for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
+            ]
+
+        # faults to op2
+        if inst_info['OPERAND_MASK'] & 0b010 != 0 and (
+            isinstance(inst, SpectInstructionR) or
+            isinstance(inst, SpectInstructionI)
+        ):
+            flip_idxs = [x for x in range(0,4)] + rn.sample(range(0,256), 2)
+            f_list += [
+                SpectFaultGPR(
+                    inst_addr = addr,
+                    inst_exec_cnt = fidx,
+                    gpr_index = inst.op2,
+                    bitflip_pos = bitflip_pos,
+                    bitflip_mask = xor_mask,
+                    is_transient = is_transient,
+                    description = f"gpt_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_op2_{bitflip_pos}"
+                )
+                for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
+            ]
+        #faults to R31
+        if inst_info['R31_DEPEND'] == True and isinstance(inst, SpectInstructionR):
+            flip_idxs = [x for x in range(0,4)] + rn.sample(range(0,256), 2)
+            f_list += [
+                SpectFaultGPR(
+                    inst_addr = addr,
+                    inst_exec_cnt = fidx,
+                    gpr_index = 31,
+                    bitflip_pos = bitflip_pos,
+                    bitflip_mask = xor_mask,
+                    is_transient = is_transient,
+                    description = f"gpt_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_R31_{bitflip_pos}"
+                )
+                for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
+            ]
+
+    return set(f_list)
+
+def fault_generator_memory_bitflip(**kwargs) -> set:
+    f_list = []
+
+    df_mem = kwargs['df_mem']
+    is_transient = kwargs['is_transient']
+    is_transient_str = ['persistent', 'transient'][int(is_transient)]
+    bitflips = kwargs['bitflips']
+    xor_mask = int('1'*bitflips, 2)
+
+    for (pc, mem_addr), group in df_mem.groupby(['PC', 'ADDR']):
+        access_list = group['EXEC_NUM'].to_numpy()
+        faults_idxs = np.linspace(0, len(access_list)-1, min(len(access_list), 5), dtype=int)
+        for exec_cnt in access_list[faults_idxs]:
+            flip_idxs = rn.sample(range(0, 32-bitflips+1), 5)
+            f_list += [
+                SpectFaultMemory(
+                        inst_addr = pc,
+                        inst_exec_cnt = exec_cnt,
+                        mem_address = mem_addr,
+                        bitflip_mask = xor_mask << flip_idx,
+                        description = f"mem_bitflip_{bitflips}_{is_transient_str}_{pc:04x}_{exec_cnt}_0x{mem_addr:04x}_{flip_idx}",
+                        is_transient = is_transient
+                    )
+                    for flip_idx in flip_idxs
+                ]
+
+    return set(f_list)
 
 FAULT_GEN_DICT = {
     "inst_skip"         : fault_generator_inst_skip,
