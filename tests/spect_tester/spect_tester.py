@@ -165,6 +165,7 @@ class SpectTestRun:
         self.max_instr_cnt   = 200_000
         self.break_str = ""
         self.iss_verbosity = iss_verbosity
+        self.dump_keymem = True
 
     def destroy_logger(self):
         for handler in self.logger.handlers[:]:
@@ -421,11 +422,12 @@ class SpectTestRun:
         cmd += f" --const-rom={self.constfile}"
         cmd += f" --data-ram-out={self.data_out_file}"
         cmd += f" --emem-out={self.emem_out_file}"
-        cmd += f" --dump-keymem={self.keymem_file}"
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
         cmd += f" --dump-exec-info={self.exec_info_file}"
         cmd += f" --verbosity={self.iss_verbosity}"
+        if self.dump_keymem == True:
+            cmd += f" --dump-keymem={self.keymem_file}"
 
         if self.input_keymem_file:
             cmd += f" --load-keymem={self.input_keymem_file}"
@@ -475,7 +477,8 @@ class SpectTestRun:
 
         self.parse_data_out()
         self.parse_emem_out()
-        self.parse_keymem()
+        if self.dump_keymem == True:
+            self.parse_keymem()
 
 class SpectTester:
 
