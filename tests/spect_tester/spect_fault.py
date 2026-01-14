@@ -231,7 +231,7 @@ def fault_generator_inst_skip(**kwargs) -> set:
                 inst_addr       = addr,
                 inst_exec_cnt   = fidx,
                 skip_cnt        = skip_cnt,
-                description     = f"inst_skip_{addr:04x}_{fidx}_{skip_cnt}"
+                description     = f"inst_skip_{skip_cnt}_{addr:04x}_{fidx}"
             )
             for fidx in faults_idxs
         ]
@@ -271,7 +271,7 @@ def fault_generator_inst_bitflip(**kwargs) -> set:
                     inst_addr = addr,
                     inst_exec_cnt = fidx,
                     new_instruction = f_code,
-                    description = f"inst_bitflip_{addr:04x}_{i:02d}_{fidx}"
+                    description = f"inst_bitflip_{bitflips}_{addr:04x}_{fidx}_{i}"
                 )
                 for fidx in faults_idxs
             ]
@@ -328,7 +328,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
                     bitflip_pos = bitflip_pos,
                     bitflip_mask = xor_mask,
                     is_transient = is_transient,
-                    description = f"gpt_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_op2_{bitflip_pos}"
+                    description = f"gpr_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_op2_{bitflip_pos}"
                 )
                 for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
             ]
@@ -343,7 +343,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
                     bitflip_pos = bitflip_pos,
                     bitflip_mask = xor_mask,
                     is_transient = is_transient,
-                    description = f"gpt_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_R31_{bitflip_pos}"
+                    description = f"gpr_bitflip_{bitflips}_{is_transient_str}_{addr:04x}_{fidx}_R31_{bitflip_pos}"
                 )
                 for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
             ]
