@@ -114,7 +114,7 @@ class SpectTestRun:
         self.data_out_file   = os.path.join(self.run_dir, "data_out.hex32")
         self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
-        self.exec_info_file  = os.path.join(self.run_dir, "exec_info")
+        self.exec_info_file  = os.path.join(self.run_dir, "exec_info.csv")
         self.mem_access_file = os.path.join(self.run_dir, "mem_access.csv")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")

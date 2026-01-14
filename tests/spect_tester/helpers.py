@@ -125,20 +125,11 @@ def set_seed(args) -> int:
     else:
         return rn.randint(0, 2**16-1)
 
-def parse_exec_info(test_dir: str, run_name: str) -> pd.DataFrame:
-    exec_info_file = os.path.join(test_dir, run_name, "exec_info")
-    exec_info_list = []
-    with open(exec_info_file, 'r') as f:
-        for line in f:
-            split = line.split(":")
-            exec_info_list.append({
-                "INST_ADDR" : int(split[0], 16),
-                "EXEC_CNT"  : int(split[1], 10),
-                "INST_CODE" : int(split[2], 16),
-                "INST_NAME" : split[3].strip()
-            })
-
-    return pd.DataFrame(exec_info_list)
+def parse_exec_info(exec_info_file: str) -> pd.DataFrame:
+    df = pd.read_csv(exec_info_file, delimiter=':')
+    df["PC"] = df["PC"].apply(lambda x: int(x, 0))
+    df["CODE"] = df["CODE"].apply(lambda x: int(x, 0))
+    return df
 
 def parse_mem_access_trace(mem_access_file: str) -> pd.DataFrame:
     df = pd.read_csv(mem_access_file, delimiter=':')
