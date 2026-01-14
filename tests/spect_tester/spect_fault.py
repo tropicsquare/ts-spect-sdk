@@ -97,7 +97,7 @@ class SpectFault(ABC):
         )
 
     def __lt__(self, other):
-        if not isinstance(other, SpectFault):
+        if not (isinstance(other, SpectFault) or issubclass(other, SpectFault)):
             return NotImplemented
         if self._type_id.value == other._type_id.value:
             if self.inst_addr == other.inst_addr:
@@ -246,11 +246,11 @@ def fault_generator_inst_bitflip(**kwargs) -> set:
     xor_mask = int('1'*bitflips, 2)
 
     for _, addr, exec_cnt, code, name in df_inst.itertuples():
-        inst = SpectInstruction.disassamble(code)
+        inst = SpectInstruction.disassemble(code)
         for i in range(32-bitflips+1):
 
             f_code = code ^ (xor_mask << i)
-            f_inst = SpectInstruction.disassamble(f_code)
+            f_inst = SpectInstruction.disassemble(f_code)
 
             # Prune invalid or equal instructions
             if f_inst is None or f_inst == inst:
@@ -263,7 +263,7 @@ def fault_generator_inst_bitflip(**kwargs) -> set:
                     continue
                 else:
                     f_inst.addr = SpectMem.InstructionRam.base+(f_inst.addr_effective*4)
-                    f_code = f_inst.assamble()
+                    f_code = f_inst.assemble()
 
             faults_idxs = np.linspace(1, exec_cnt, min(exec_cnt, 5), dtype=int)
             f_list += [
@@ -288,7 +288,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
     xor_mask = int('1'*bitflips, 2)
 
     for _, addr, exec_cnt, code, name in df_inst.itertuples():
-        inst = SpectInstruction.disassamble(code)
+        inst = SpectInstruction.disassemble(code)
         assert inst is not None
         if (isinstance(inst, SpectInstructionM) or
             isinstance(inst, SpectInstructionJ)

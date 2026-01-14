@@ -181,11 +181,11 @@ class SpectInstruction(ABC):
         pass
 
     @abstractmethod
-    def assamble(self) -> int:
+    def assemble(self) -> int:
         pass
 
     @staticmethod
-    def disassamble(inst_code: int):
+    def disassemble(inst_code: int):
         itype = bitslice_get(inst_code, SpectInstruction.TYPE)
         opcode = bitslice_get(inst_code, SpectInstruction.OPCODE)
         func = bitslice_get(inst_code, SpectInstruction.FUNC)
@@ -235,12 +235,12 @@ class SpectInstructionR(SpectInstruction):
         return f"{mnemo}\tr{self.op1}, r{self.op2}, r{self.op3}"
 
     def __repr__(self) -> str:
-        return f"0x{self.assamble():08x}\t{str(self)}"
+        return f"0x{self.assemble():08x}\t{str(self)}"
 
     def __eq__(self, other):
-        return self.assamble() == other.assamble()
+        return self.assemble() == other.assemble()
 
-    def assamble(self) -> int:
+    def assemble(self) -> int:
         inst_code = 0
         inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
         inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
@@ -268,12 +268,12 @@ class SpectInstructionI(SpectInstruction):
         return f"{mnemo}\tr{self.op1}, r{self.op2}, 0x{self.imd:03x}"
 
     def __repr__(self) -> str:
-        return f"0x{self.assamble():08x}\t{str(self)}"
+        return f"0x{self.assemble():08x}\t{str(self)}"
 
     def __eq__(self, other):
-        return self.assamble() == other.assamble()
+        return self.assemble() == other.assemble()
 
-    def assamble(self) -> int:
+    def assemble(self) -> int:
         inst_code = 0
         inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
         inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
@@ -300,7 +300,7 @@ class SpectInstructionJ(SpectInstruction):
         return f"{mnemo}\t0x{self.addr:04x} ({self.addr_effective})"
 
     def __repr__(self) -> str:
-        return f"0x{self.assamble():08x}\t{str(self)}"
+        return f"0x{self.assemble():08x}\t{str(self)}"
 
     def __eq__(self, other):
         return (
@@ -310,7 +310,7 @@ class SpectInstructionJ(SpectInstruction):
             self.addr_effective == other.addr_effective
         )
 
-    def assamble(self) -> int:
+    def assemble(self) -> int:
         inst_code = 0
         inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
         inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
@@ -335,12 +335,12 @@ class SpectInstructionM(SpectInstruction):
         return f"{mnemo}\tr{self.op1}, 0x{self.addr:04x}"
 
     def __repr__(self) -> str:
-        return f"0x{self.assamble():08x}\t{str(self)}"
+        return f"0x{self.assemble():08x}\t{str(self)}"
 
     def __eq__(self, other):
-        return self.assamble() == other.assamble()
+        return self.assemble() == other.assemble()
 
-    def assamble(self) -> int:
+    def assemble(self) -> int:
         inst_code = 0
         inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
         inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
