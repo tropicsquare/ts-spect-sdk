@@ -300,7 +300,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
 
         # faults to op3
         if inst_info['OPERAND_MASK'] & 0b001 != 0 and isinstance(inst, SpectInstructionR):
-            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256), 4)    # 4 LSBs and 4 random
+            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256-bitflips+1), 4)    # 4 LSBs and 4 random
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
@@ -319,7 +319,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
             isinstance(inst, SpectInstructionR) or
             isinstance(inst, SpectInstructionI)
         ):
-            flip_idxs = [x for x in range(0,4)] + rn.sample(range(0,256), 2)
+            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256-bitflips+1), 4)    # 4 LSBs and 4 random
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
@@ -334,7 +334,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
             ]
         #faults to R31
         if inst_info['R31_DEPEND'] == True and isinstance(inst, SpectInstructionR):
-            flip_idxs = [x for x in range(0,4)] + rn.sample(range(0,256), 2)
+            flip_idxs = rn.sample(range(0,256-bitflips+1), 8)
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
