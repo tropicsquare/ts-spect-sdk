@@ -102,6 +102,15 @@ data:
     value : 0x5968b37af66c22414cdcd32f529b4eebd29e4a2cb01e199931ad5aaa44ed4d20
     address : 0x33C0
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# HMAC (for HMAC-SHA512)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_hmac_ipdad
+    value : 0x3636363636363636363636363636363636363636363636363636363636363636
+    address :
+  - name : ca_hmac_opdad
+    value : 0x5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c
+    address :
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # secp256k1 (Bitcoin curve)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   - name : ca_p256k1
