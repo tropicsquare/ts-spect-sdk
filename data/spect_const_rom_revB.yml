@@ -106,10 +106,10 @@ data:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   - name : ca_hmac_ipdad
     value : 0x3636363636363636363636363636363636363636363636363636363636363636
-    address :
+    address : 0x3400
   - name : ca_hmac_opdad
     value : 0x5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c
-    address :
+    address : 0x3420
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # secp256k1 (Bitcoin curve)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
