@@ -1,0 +1,194 @@
+name: constants
+start_addr: 0x3000
+end_addr:   0x37FF
+data:
+  - name : ca_dst_template
+    value : 0x1E2054535F53504543545F445354010000000000000000000000000000000000
+    address : 0x3320
+  - name : ca_ffff
+    value : 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    address : 0x3240
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# secp256r1 (NIST P-256)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_p256
+    value : 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff
+    address : 0x3000
+  - name : ca_q256
+    value : 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551
+    address : 0x3020
+  - name : ca_ecdsa_exp_low
+    value : 0xbce6faada7179e84f3b9cac2fc63254f00000000000000000000000000000000
+    address : 0x3040
+  - name : ca_p256_a
+    value : 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
+    address : 0x3060
+  - name : ca_p256_b
+    value : 0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b
+    address : 0x3080
+  - name : ca_p256_xG
+    value : 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296
+    address : 0x30A0
+  - name : ca_p256_yG
+    value : 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5
+    address : 0x30C0
+  - name : ca_p256_c1
+    value : 0x3fffffffc00000004000000000000000000000003fffffffffffffffffffffff
+    address : 0x30E0
+  - name : ca_p256_c2
+    value : 0xda538e3be1d89b99c978fc675180aab27b8d1ff84c55d5b62ccd3427e433c47f
+    address : 0x3100
+  - name : ca_p256_Z
+    value : 0xffffffff00000001000000000000000000000000fffffffffffffffffffffff5
+    address : 0x3120
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Ed25519 + Curve25519 + W-25519 + Ristretto255
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_p25519
+    value : 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed
+    address : 0x3140
+  - name : ca_q25519
+    value : 0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed
+    address : 0x3160
+  - name : ca_q25519_8                  # q * 8
+    value : 0x80000000000000000000000000000000a6f7cef517bce6b2c09318d2e7ae9f68
+    address : 0x3180
+  - name : ca_ed25519_d
+    value : 0x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3
+    address : 0x31A0
+  - name : ca_ed25519_xG
+    value : 0x216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a
+    address : 0x31C0
+  - name : ca_ed25519_yG
+    value : 0x6666666666666666666666666666666666666666666666666666666666666658
+    address : 0x31E0
+  - name : ca_p25519_c3                 # 2^( (p-1) / 4 ), also SQRT_M1 for Ristretto
+    value : 0x2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0
+    address : 0x3200
+  - name : ca_x25519_a24
+    value : 121665
+    address : 0x3220
+  - name : ca_curve25519_a
+    value : 486662
+    address : 0x3260
+  - name : ca_curve25519_a2d4
+    value : 0x1db42
+    address : 0x3280
+  - name : ca_curve25519_amap
+    value : 0x2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad2451
+    address : 0x32A0
+  - name : ca_w25519_a
+    value : 0x2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa984914a144
+    address : 0x32C0
+  - name : ca_w25519_3b
+    value : 0x71c71c71c71c71c71c71c71c71c71c71c71c71c71c71c71c72221bd565325952
+    address : 0x32E0
+  - name : ca_pg_map2ed25519_c5           # sqrt(-486664)
+    value : 0x0f26edf460a006bbd27b08dc03fc4f7ec5a1d3d14b7d1a82cc6e04aaff457e06
+    address : 0x3300
+  - name : ca_ed25519_invsqrt_amd         # sqrt(a-d)^(-1)
+    value : 0x786c8905cfaffca216c27b91fe01d8409d2f16175a4172be99c8fdaa805d40ea
+    address : 0x3340
+  - name : ca_pg_map2ristretto_sqrt_adm1  # sqrt(a*d - 1)
+    value : 0x4896ce40d47cb753f0c30336ce0a2e02506271f3e487ab428168095fb684d1d2
+    address : 0x3360
+  - name : ca_ristretto_sqrt_ad_m1
+    value : 0x376931bf2b8348ac0f3cfcc931f5d1fdaf9d8e0c1b7854bd7e97f6a0497b2e1b
+    address : 0x3380
+  - name : ca_ristretto_1m_dsq            # 1 - d^2
+    value : 0x29072a8b2b3e0d79994abddbe70dfe42c81a138cd5e350fe27c09c1945fc176
+    address : 0x33A0
+  - name : ca_ristretto_dmq
+    value : 0x5968b37af66c22414cdcd32f529b4eebd29e4a2cb01e199931ad5aaa44ed4d20
+    address : 0x33C0
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# HMAC (for HMAC-SHA512)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_hmac_ipdad
+    value : 0x3636363636363636363636363636363636363636363636363636363636363636
+    address :
+  - name : ca_hmac_opdad
+    value : 0x5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c
+    address :
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# secp256k1 (Bitcoin curve)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_p256k1
+    value : 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
+    address : 0x3500
+  - name : ca_q256k1
+    value : 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    address : 0x3520
+  - name : ca_p256k1_xG
+    value : 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+    address : 0x3540
+  - name : ca_p256k1_yG
+    value : 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+    address : 0x3560
+  - name : ca_p256k1_c2
+    value : 0x31fdf302724013e57ad13fb38f842afeec184f00a74789dd286729c8303c4a59
+    address : 0x3580
+  - name : ca_p256k1_Z
+    value : 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc24
+    address : 0x35A0
+  # secp256k1 3-isogeny map constants
+  - name : ca_p256k1_isomap_a
+    value : 0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533
+    address : 0x35C0
+  - name : ca_p256k1_isomap_b
+    value : 1771
+    address : 0x35E0
+  - name : ca_p256k1_k10
+    value: 0x8e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38daaaaa8c7
+    address : 0x3600
+  - name : ca_p256k1_k11
+    value: 0x07d3d4c80bc321d5b9f315cea7fd44c5d595d2fc0bf63b92dfff1044f17c6581
+    address : 0x3620
+  - name : ca_p256k1_k12
+    value: 0x534c328d23f234e6e2a413deca25caece4506144037c40314ecbd0b53d9dd262
+    address : 0x3640
+  - name : ca_p256k1_k13
+    value: 0x8e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38e38daaaaa88c
+    address : 0x3660
+  #
+  - name : ca_p256k1_k20
+    value: 0xd35771193d94918a9ca34ccbb7b640dd86cd409542f8487d9fe6b745781eb49b
+    address : 0x3680
+  - name : ca_p256k1_k21
+    value: 0xedadc6f64383dc1df7c4b2d51b54225406d36b641f5e41bbc52a56612a8c6d14
+    address : 0x36A0
+  #
+  - name : ca_p256k1_k30
+    value: 0x4bda12f684bda12f684bda12f684bda12f684bda12f684bda12f684b8e38e23c
+    address : 0x36C0
+  - name : ca_p256k1_k31
+    value: 0xc75e0c32d5cb7c0fa9d0a54b12a0a6d5647ab046d686da6fdffc90fc201d71a3
+    address : 0x36E0
+  - name : ca_p256k1_k32
+    value: 0x29a6194691f91a73715209ef6512e576722830a201be2018a765e85a9ecee931
+    address : 0x3700
+  - name : ca_p256k1_k33
+    value: 0x2f684bda12f684bda12f684bda12f684bda12f684bda12f684bda12f38e38d84
+    address : 0x3720
+  #
+  - name : ca_p256k1_k40
+    value: 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffff93b
+    address : 0x3740
+  - name : ca_p256k1_k41
+    value: 0x7a06534bb8bdb49fd5e9e6632722c2989467c1bfc8e8d978dfb425d2685c2573
+    address : 0x3760
+  - name : ca_p256k1_k42
+    value: 0x6484aa716545ca2cf3a70c3fa8fe337e0a3d21162f0d6299a7bf8192bfd2a76f
+    address : 0x3780
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# secp256k1 BIP340 constants
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name : ca_bip340_nonce        # sha256("BIP0340/nonce")
+    value : 0x07497734a79bcb355b9b8c7d034f121cf434d73ef72dda19870061fb52bfeb2f
+    address : 0x37A0
+  - name : ca_bip340_challenge    # sha256("BIP0340/challenge")
+    value : 0x7bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c
+    address : 0x37C0
+  - name : ca_bip340_aux          # sha256("BIP0340/aux")
+    value : 0xf1ef4e5ec063cada6d94cafa9d987ea069265839ecc11f972d77a52ed8c1cc90
+    address : 0x37E0
