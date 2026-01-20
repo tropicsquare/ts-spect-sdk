@@ -300,7 +300,9 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
 
         # faults to op3
         if inst_info['OPERAND_MASK'] & 0b001 != 0 and isinstance(inst, SpectInstructionR):
-            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256-bitflips+1), 4)    # 4 LSBs and 4 random
+            flip_idxs = [x for x in range(0,32)]                       # 32 LSBs
+            if inst_info['32BIT'] != True:
+                flip_idxs += rn.sample(range(32,256-bitflips+1), 32)   # 32 random
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
@@ -319,7 +321,10 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
             isinstance(inst, SpectInstructionR) or
             isinstance(inst, SpectInstructionI)
         ):
-            flip_idxs = [x for x in range(0,4)] + rn.sample(range(4,256-bitflips+1), 4)    # 4 LSBs and 4 random
+            flip_idxs = [x for x in range(0,32)]                       # 32 LSBs
+            if inst_info['32BIT'] != True:
+                flip_idxs += rn.sample(range(32,256-bitflips+1), 32)   # 32 random
+
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
@@ -332,9 +337,9 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
                 )
                 for fidx, bitflip_pos in itertools.product(faults_idxs, flip_idxs)
             ]
-        #faults to R31
+        # faults to R31
         if inst_info['R31_DEPEND'] == True and isinstance(inst, SpectInstructionR):
-            flip_idxs = rn.sample(range(0,256-bitflips+1), 8)
+            flip_idxs = rn.sample(range(0,256-bitflips+1), 16)
             f_list += [
                 SpectFaultGPR(
                     inst_addr = addr,
@@ -363,7 +368,7 @@ def fault_generator_memory_bitflip(**kwargs) -> set:
         access_list = group['EXEC_NUM'].to_numpy()
         faults_idxs = np.linspace(0, len(access_list)-1, min(len(access_list), 5), dtype=int)
         for exec_cnt in access_list[faults_idxs]:
-            flip_idxs = rn.sample(range(0, 32-bitflips+1), 5)
+            flip_idxs = [x for x in range(8)] + rn.sample(range(8, 32-bitflips+1), 8)   # 8 LSBs + 8 random
             f_list += [
                 SpectFaultMemory(
                         inst_addr = pc,
