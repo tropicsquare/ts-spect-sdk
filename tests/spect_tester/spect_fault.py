@@ -262,7 +262,8 @@ def fault_generator_inst_bitflip(**kwargs) -> set:
                 if f_inst.addr_effective >= SpectMem.InstructionRam.depth:
                     continue
                 else:
-                    f_inst.addr = SpectMem.InstructionRam.base+(f_inst.addr_effective*4)
+                    f_inst.code.addr = SpectMem.InstructionRam.base+(f_inst.addr_effective*4)
+                    f_inst.update_parity()
                     f_code = f_inst.assemble()
 
             faults_idxs = np.linspace(1, exec_cnt, min(exec_cnt, 5), dtype=int)
@@ -307,7 +308,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
                 SpectFaultGPR(
                     inst_addr = addr,
                     inst_exec_cnt = fidx,
-                    gpr_index = inst.op3,
+                    gpr_index = inst.code.op3,
                     bitflip_pos = bitflip_pos,
                     bitflip_mask = xor_mask,
                     is_transient = is_transient,
@@ -329,7 +330,7 @@ def fault_generator_gpr_bitflip(**kwargs) -> set:
                 SpectFaultGPR(
                     inst_addr = addr,
                     inst_exec_cnt = fidx,
-                    gpr_index = inst.op2,
+                    gpr_index = inst.code.op2,
                     bitflip_pos = bitflip_pos,
                     bitflip_mask = xor_mask,
                     is_transient = is_transient,

@@ -210,6 +210,10 @@ class SpectInstruction(ABC):
     def assemble(self) -> int:
         return int(self.code.val)
 
+    def update_parity(self):
+        self.code.parity = 0
+        self.code.parity = (bin(int(self.code)).count("1") & 1)
+
 class SpectInstructionR(SpectInstruction, class_id=SpectInstructionType.R):
 
     Layout = define_layout([
@@ -228,7 +232,7 @@ class SpectInstructionR(SpectInstruction, class_id=SpectInstructionType.R):
         self.code.op1 = op1
         self.code.op2 = op2
         self.code.op3 = op3
-        self.code.parity = (bin(int(self.code)).count("1") & 1)
+        self.update_parity()
 
     def __str__(self) -> str:
         return f"{self.name}\tr{self.code.op1}, r{self.code.op2}, r{self.code.op3}"
@@ -261,7 +265,7 @@ class SpectInstructionI(SpectInstruction, class_id=SpectInstructionType.I):
         self.code.op1 = op1
         self.code.op2 = op2
         self.code.imd = imd
-        self.code.parity = (bin(int(self.code)).count("1") & 1)
+        self.update_parity()
 
     def __str__(self) -> str:
         return f"{self.name}\tr{self.code.op1}, r{self.code.op2}, 0x{self.code.imd:03x}"
@@ -292,6 +296,7 @@ class SpectInstructionJ(SpectInstruction, class_id=SpectInstructionType.J):
         super().__init__(self.Layout, SpectInstructionType.J, opcode, func)
         self.code.addr = addr
         self.code.parity = (bin(int(self.code)).count("1") & 1)
+        self.update_parity()
         self.addr_effective = (addr & 0x3FFF) // 4
 
     def __str__(self) -> str:
@@ -329,7 +334,7 @@ class SpectInstructionM(SpectInstruction, class_id=SpectInstructionType.M):
         super().__init__(self.Layout, SpectInstructionType.M, opcode, func)
         self.code.op1 = op1
         self.code.addr = addr
-        self.code.parity = (bin(int(self.code)).count("1") & 1)
+        self.update_parity()
 
     def __str__(self) -> str:
         return f"{self.name}\tr{self.code.op1}, 0x{self.code.addr:04x}"
