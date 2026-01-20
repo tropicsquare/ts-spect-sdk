@@ -257,7 +257,7 @@ def fault_generator_inst_bitflip(**kwargs) -> set:
                 continue
 
             # If it is a J instruction, fix its target to the effective address to reflect the HW
-            if type(f_inst) == SpectInstructionJ:
+            if isinstance(f_inst, SpectInstructionJ):
                 # If the effective address is outside instruction ram, prune
                 if f_inst.addr_effective >= SpectMem.InstructionRam.depth:
                     continue
