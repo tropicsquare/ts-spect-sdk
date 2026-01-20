@@ -114,7 +114,8 @@ class SpectTestRun:
         self.data_out_file   = os.path.join(self.run_dir, "data_out.hex32")
         self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
-        self.exec_info_file  = os.path.join(self.run_dir, "exec_info")
+        self.exec_info_file  = os.path.join(self.run_dir, "exec_info.csv")
+        self.mem_access_file = os.path.join(self.run_dir, "mem_access.csv")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
 
@@ -164,6 +165,7 @@ class SpectTestRun:
         self.max_instr_cnt   = 200_000
         self.break_str = ""
         self.iss_verbosity = iss_verbosity
+        self.dump_keymem = True
 
     def destroy_logger(self):
         for handler in self.logger.handlers[:]:
@@ -391,7 +393,7 @@ class SpectTestRun:
             self.critical(f"File {file} does not exist!")
         self.input_context_file = file
 
-    def run(self):
+    def run(self, **kwargs):
         self.set_cfg_word()
         self.cmd_run()
         if self.break_str != "":
@@ -420,11 +422,12 @@ class SpectTestRun:
         cmd += f" --const-rom={self.constfile}"
         cmd += f" --data-ram-out={self.data_out_file}"
         cmd += f" --emem-out={self.emem_out_file}"
-        cmd += f" --dump-keymem={self.keymem_file}"
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
         cmd += f" --dump-exec-info={self.exec_info_file}"
         cmd += f" --verbosity={self.iss_verbosity}"
+        if self.dump_keymem == True:
+            cmd += f" --dump-keymem={self.keymem_file}"
 
         if self.input_keymem_file:
             cmd += f" --load-keymem={self.input_keymem_file}"
@@ -434,6 +437,9 @@ class SpectTestRun:
 
         if self.input_context_file:
             cmd += f" --load-context={self.input_context_file}"
+
+        for arg, val in kwargs.items():
+            cmd += f" --{arg.replace('_', '-')}={val}"
 
         cmd += f" --shell --cmd-file={self.cmd_file_path}"
         cmd += f" > {self.iss_log_file}"
@@ -471,7 +477,8 @@ class SpectTestRun:
 
         self.parse_data_out()
         self.parse_emem_out()
-        self.parse_keymem()
+        if self.dump_keymem == True:
+            self.parse_keymem()
 
 class SpectTester:
 
