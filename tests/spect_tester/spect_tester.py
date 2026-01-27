@@ -51,7 +51,8 @@ class IssVerbosity(IntEnum):
 #############################################################
 #   TIMESTAMP
 #############################################################
-TIMESTAMP = datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
+def time_stamp():
+    return datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
 
 #############################################################
 #   PARSER
@@ -96,7 +97,8 @@ class SpectTestRun:
         self.logger.propagate = False
         hndl = logging.FileHandler(self.log_file)
         formatter = logging.Formatter(
-            '%(levelname)s - %(message)s'
+            fmt='%(asctime)s,%(msecs)03d [%(levelname)s] - %(message)s',
+            datefmt='%H:%M:%S'
         )
         hndl.setFormatter(formatter)
         if not self.logger.handlers:
@@ -500,7 +502,7 @@ class SpectTester:
         ############################################################################################
         #   Create test directory
         ############################################################################################
-        test_dir_name = f"test_{self.test_name}_{TIMESTAMP}"
+        test_dir_name = f"test_{self.test_name}_{time_stamp()}"
         self.test_dir = os.path.join(SpectTester.TESTER_DIR, test_dir_name)
         os.system(f"rm -rf {self.test_dir}")
         os.makedirs(self.test_dir)
@@ -515,7 +517,8 @@ class SpectTester:
         self.logger.propagate = False
         hndl = logging.FileHandler(self.log_file)
         formatter = logging.Formatter(
-            '%(levelname)s - %(message)s'
+            fmt='%(asctime)s,%(msecs)03d [%(levelname)s] - %(message)s',
+            datefmt='%H:%M:%S'
         )
         hndl.setFormatter(formatter)
         if not self.logger.handlers:
