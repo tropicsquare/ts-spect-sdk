@@ -2,18 +2,7 @@
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
-
-def bitslice_get_mask(high, low) -> int:
-    return (1 << (high - low + 1)) - 1
-
-def bitslice_get(x: int, slice: tuple) -> int:
-    return (x >> slice[1]) & bitslice_get_mask(slice[0], slice[1])
-
-def bitslice_set(x: int, v: int, slice: tuple) -> int:
-    v = v & bitslice_get_mask(slice[0], slice[1])
-    v = v << slice[1]
-    return x | v
-
+import ctypes
 class SpectInstructionType(IntEnum):
     J = 0
     I = 1
@@ -90,9 +79,9 @@ INST_MNEMO_MAP = TwoWayMap({
 })
 
 INST_INFO = {
-    "ADD"       : {'OPERAND_MASK': 0b111, '32BIT': True, 'R31_DEPEND' : False  },
-    "SUB"       : {'OPERAND_MASK': 0b111, '32BIT': True, 'R31_DEPEND' : False  },
-    "CMP"       : {'OPERAND_MASK': 0b011, '32BIT': True, 'R31_DEPEND' : False  },
+    "ADD"       : {'OPERAND_MASK': 0b111, '32BIT': True,  'R31_DEPEND' : False  },
+    "SUB"       : {'OPERAND_MASK': 0b111, '32BIT': True,  'R31_DEPEND' : False  },
+    "CMP"       : {'OPERAND_MASK': 0b011, '32BIT': True,  'R31_DEPEND' : False  },
     "AND"       : {'OPERAND_MASK': 0b111, '32BIT': False, 'R31_DEPEND' : False  },
     "OR"        : {'OPERAND_MASK': 0b111, '32BIT': False, 'R31_DEPEND' : False  },
     "XOR"       : {'OPERAND_MASK': 0b111, '32BIT': False, 'R31_DEPEND' : False  },
@@ -152,203 +141,210 @@ INST_INFO = {
     "NOP"       : {'OPERAND_MASK': 0b000, '32BIT': False, 'R31_DEPEND' : False  },
 }
 
+def define_layout(layout):
+    class Bits(ctypes.LittleEndianStructure):
+        _fields_ = layout
+
+    class Reg(ctypes.Union):
+        _fields_ = [
+            ("bits", Bits),
+            ("val", ctypes.c_uint32)
+        ]
+        _anonymous_ = ("bits",)
+
+        def __init__(self, x: int):
+            self.val = ctypes.c_uint32(x & 0xFFFF_FFFF)
+
+        def __int__(self) -> int:
+            return int(self.val)
+
+    return Reg
+
 class SpectInstruction(ABC):
 
-    TYPE    = (30, 29)
-    OPCODE  = (28, 25)
-    FUNC    = (24, 22)
-    OP1     = (21, 17)
-    OP2     = (16, 12)
-    OP3     = (11, 7)
-    IMD     = (11, 0)
-    ADDR    = (15, 0)
-    PARITY  = (31, 31)
+    _registry = {}
 
-    def __init__(self, opcode: int, func: int):
-        self.opcode = opcode
-        self.func = func
+    Layout = define_layout([
+        ("specific", ctypes.c_uint32, 22),  # [21: 0]
+        ("func",     ctypes.c_uint32, 3),   # [24:22]
+        ("opcode",   ctypes.c_uint32, 4),   # [28:25]
+        ("type",     ctypes.c_uint32, 2),   # [30:29]
+        ("parity",   ctypes.c_uint32, 1),   # [31:31]
+    ])
+
+    def __init__(self, cls_layout, itype: int, opcode: int, func: int):
+        self.code = cls_layout(0)
+        self.code.type   = itype
+        self.code.opcode = opcode
+        self.code.func   = func
+        self.name = INST_MNEMO_MAP.mnemo[(itype, opcode, func)]
+
+    def __init_subclass__(cls, class_id=None, **kwargs) -> None:
+        super().__init_subclass__()
+        if class_id is not None:
+            cls._registry[class_id] = cls
+            cls._type_id = class_id
 
     @abstractmethod
     def __str__(self) -> str:
-        pass
+        ...
 
-    @abstractmethod
     def __repr__(self) -> str:
-        pass
+        return f"0x{self.assemble():08x}\t{str(self)}"
 
-    @abstractmethod
     def __eq__(self, other) -> bool:
-        pass
+        return self.code.val == other.code.val
 
-    @abstractmethod
-    def assemble(self) -> int:
-        pass
+    @classmethod
+    def disassemble(cls, inst_code: int):
+        code = SpectInstruction.Layout(inst_code)
 
-    @staticmethod
-    def disassemble(inst_code: int):
-        itype = bitslice_get(inst_code, SpectInstruction.TYPE)
-        opcode = bitslice_get(inst_code, SpectInstruction.OPCODE)
-        func = bitslice_get(inst_code, SpectInstruction.FUNC)
-
-        if (itype, opcode, func) not in INST_MNEMO_MAP.mnemo:
+        if (code.type, code.opcode, code.func) not in INST_MNEMO_MAP.mnemo:
             return None
 
-        if itype == SpectInstructionType.J:
-            return SpectInstructionJ(
-                opcode, func,
-                bitslice_get(inst_code, SpectInstruction.ADDR),
-            )
-        if itype == SpectInstructionType.I:
-            return SpectInstructionI(
-                opcode, func,
-                bitslice_get(inst_code, SpectInstruction.OP1),
-                bitslice_get(inst_code, SpectInstruction.OP2),
-                bitslice_get(inst_code, SpectInstruction.IMD),
-            )
-        if itype == SpectInstructionType.M:
-            return SpectInstructionM(
-                opcode, func,
-                bitslice_get(inst_code, SpectInstruction.OP1),
-                bitslice_get(inst_code, SpectInstruction.ADDR),
-            )
-        if itype == SpectInstructionType.R:
-            return SpectInstructionR(
-                opcode, func,
-                bitslice_get(inst_code, SpectInstruction.OP1),
-                bitslice_get(inst_code, SpectInstruction.OP2),
-                bitslice_get(inst_code, SpectInstruction.OP3),
-            )
+        target_class = cls._registry.get(code.type)
+        assert target_class is not None # Should not happen
 
-        return None
+        return target_class.disassemble(inst_code)
 
-class SpectInstructionR(SpectInstruction):
+    def assemble(self) -> int:
+        return int(self.code.val)
+
+    def update_parity(self):
+        self.code.parity = 0
+        self.code.parity = (bin(int(self.code)).count("1") & 1)
+
+class SpectInstructionR(SpectInstruction, class_id=SpectInstructionType.R):
+
+    Layout = define_layout([
+        ("empty",    ctypes.c_uint32, 7),   # [ 6: 0]
+        ("op3",      ctypes.c_uint32, 5),   # [11: 7]
+        ("op2",      ctypes.c_uint32, 5),   # [16:12]
+        ("op1",      ctypes.c_uint32, 5),   # [21:17]
+        ("func",     ctypes.c_uint32, 3),   # [24:22]
+        ("opcode",   ctypes.c_uint32, 4),   # [28:25]
+        ("type",     ctypes.c_uint32, 2),   # [30:29]
+        ("parity",   ctypes.c_uint32, 1),   # [31:31]
+    ])
 
     def __init__(self, opcode: int, func: int, op1: int, op2: int, op3: int):
-        super().__init__(opcode, func)
-        self.type = SpectInstructionType.R
-        self.op1 = op1
-        self.op2 = op2
-        self.op3 = op3
+        super().__init__(self.Layout, SpectInstructionType.R, opcode, func)
+        self.code.op1 = op1
+        self.code.op2 = op2
+        self.code.op3 = op3
+        self.update_parity()
 
     def __str__(self) -> str:
-        mnemo = INST_MNEMO_MAP.mnemo[(self.type, self.opcode, self.func)]
-        return f"{mnemo}\tr{self.op1}, r{self.op2}, r{self.op3}"
+        return f"{self.name}\tr{self.code.op1}, r{self.code.op2}, r{self.code.op3}"
 
-    def __repr__(self) -> str:
-        return f"0x{self.assemble():08x}\t{str(self)}"
+    @classmethod
+    def disassemble(cls, inst_code: int):
+        code = SpectInstructionR.Layout(inst_code)
+        return SpectInstructionR(
+            opcode  = code.opcode,
+            func    = code.func,
+            op1     = code.op1,
+            op2     = code.op2,
+            op3     = code.op3
+        )
 
-    def __eq__(self, other):
-        return self.assemble() == other.assemble()
+class SpectInstructionI(SpectInstruction, class_id=SpectInstructionType.I):
 
-    def assemble(self) -> int:
-        inst_code = 0
-        inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
-        inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
-        inst_code = bitslice_set(inst_code, self.func,      SpectInstruction.FUNC)
-        inst_code = bitslice_set(inst_code, self.op1,       SpectInstruction.OP1)
-        inst_code = bitslice_set(inst_code, self.op2,       SpectInstruction.OP2)
-        inst_code = bitslice_set(inst_code, self.op3,       SpectInstruction.OP3)
-
-        parity = (bin(inst_code).count("1") & 1)
-        inst_code = bitslice_set(inst_code, parity, SpectInstruction.PARITY)
-
-        return inst_code
-
-class SpectInstructionI(SpectInstruction):
+    Layout = define_layout([
+        ("imd",      ctypes.c_uint32, 12),  # [11: 0]
+        ("op2",      ctypes.c_uint32, 5),   # [16:12]
+        ("op1",      ctypes.c_uint32, 5),   # [21:17]
+        ("func",     ctypes.c_uint32, 3),   # [24:22]
+        ("opcode",   ctypes.c_uint32, 4),   # [28:25]
+        ("type",     ctypes.c_uint32, 2),   # [30:29]
+        ("parity",   ctypes.c_uint32, 1),   # [31:31]
+    ])
 
     def __init__(self, opcode: int, func: int, op1: int, op2: int, imd: int):
-        super().__init__(opcode, func)
-        self.type = SpectInstructionType.I
-        self.op1 = op1
-        self.op2 = op2
-        self.imd = imd
+        super().__init__(self.Layout, SpectInstructionType.I, opcode, func)
+        self.code.op1 = op1
+        self.code.op2 = op2
+        self.code.imd = imd
+        self.update_parity()
 
     def __str__(self) -> str:
-        mnemo = INST_MNEMO_MAP.mnemo[(self.type, self.opcode, self.func)]
-        return f"{mnemo}\tr{self.op1}, r{self.op2}, 0x{self.imd:03x}"
+        return f"{self.name}\tr{self.code.op1}, r{self.code.op2}, 0x{self.code.imd:03x}"
 
-    def __repr__(self) -> str:
-        return f"0x{self.assemble():08x}\t{str(self)}"
+    @classmethod
+    def disassemble(cls, inst_code: int):
+        code = SpectInstructionI.Layout(inst_code)
+        return SpectInstructionI(
+            opcode  = code.opcode,
+            func    = code.func,
+            op1     = code.op1,
+            op2     = code.op2,
+            imd     = code.imd
+        )
 
-    def __eq__(self, other):
-        return self.assemble() == other.assemble()
+class SpectInstructionJ(SpectInstruction, class_id=SpectInstructionType.J):
 
-    def assemble(self) -> int:
-        inst_code = 0
-        inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
-        inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
-        inst_code = bitslice_set(inst_code, self.func,      SpectInstruction.FUNC)
-        inst_code = bitslice_set(inst_code, self.op1,       SpectInstruction.OP1)
-        inst_code = bitslice_set(inst_code, self.op2,       SpectInstruction.OP2)
-        inst_code = bitslice_set(inst_code, self.imd,       SpectInstruction.IMD)
-
-        parity = (bin(inst_code).count("1") & 1)
-        inst_code = bitslice_set(inst_code, parity, SpectInstruction.PARITY)
-
-        return inst_code
-
-class SpectInstructionJ(SpectInstruction):
+    Layout = define_layout([
+        ("addr",     ctypes.c_uint32, 16),  # [15: 0]
+        ("empty",    ctypes.c_uint32, 6),   # [21:15]
+        ("func",     ctypes.c_uint32, 3),   # [24:22]
+        ("opcode",   ctypes.c_uint32, 4),   # [28:25]
+        ("type",     ctypes.c_uint32, 2),   # [30:29]
+        ("parity",   ctypes.c_uint32, 1),   # [31:31]
+    ])
 
     def __init__(self, opcode: int, func: int, addr: int):
-        super().__init__(opcode, func)
-        self.type = SpectInstructionType.J
-        self.addr = addr
+        super().__init__(self.Layout, SpectInstructionType.J, opcode, func)
+        self.code.addr = addr
+        self.code.parity = (bin(int(self.code)).count("1") & 1)
+        self.update_parity()
         self.addr_effective = (addr & 0x3FFF) // 4
 
     def __str__(self) -> str:
-        mnemo = INST_MNEMO_MAP.mnemo[(self.type, self.opcode, self.func)]
-        return f"{mnemo}\t0x{self.addr:04x} ({self.addr_effective})"
+        return f"{self.name}\t0x{self.code.addr:04x} ({self.addr_effective})"
 
-    def __repr__(self) -> str:
-        return f"0x{self.assemble():08x}\t{str(self)}"
-
+    # We need to compare effective target addresses
     def __eq__(self, other):
         return (
-            self.type   == other.type and
-            self.opcode == other.opcode and
-            self.func   == other.func and
+            self.name           == other.name and
             self.addr_effective == other.addr_effective
         )
 
-    def assemble(self) -> int:
-        inst_code = 0
-        inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
-        inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
-        inst_code = bitslice_set(inst_code, self.func,      SpectInstruction.FUNC)
-        inst_code = bitslice_set(inst_code, self.addr,      SpectInstruction.ADDR)
+    @classmethod
+    def disassemble(cls, inst_code: int):
+        code = SpectInstructionJ.Layout(inst_code)
+        return SpectInstructionJ(
+            opcode  = code.opcode,
+            func    = code.func,
+            addr    = code.addr,
+        )
 
-        parity = (bin(inst_code).count("1") & 1)
-        inst_code = bitslice_set(inst_code, parity, SpectInstruction.PARITY)
+class SpectInstructionM(SpectInstruction, class_id=SpectInstructionType.M):
 
-        return inst_code
-
-class SpectInstructionM(SpectInstruction):
+    Layout = define_layout([
+        ("addr",     ctypes.c_uint32, 16),  # [15: 0]
+        ("empty",    ctypes.c_uint32, 1),   # [16:15]
+        ("op1",      ctypes.c_uint32, 5),   # [21:17]
+        ("func",     ctypes.c_uint32, 3),   # [24:22]
+        ("opcode",   ctypes.c_uint32, 4),   # [28:25]
+        ("type",     ctypes.c_uint32, 2),   # [30:29]
+        ("parity",   ctypes.c_uint32, 1),   # [31:31]
+    ])
 
     def __init__(self, opcode: int, func: int, op1: int, addr: int):
-        super().__init__(opcode, func)
-        self.type = SpectInstructionType.M
-        self.op1 = op1
-        self.addr = addr
+        super().__init__(self.Layout, SpectInstructionType.M, opcode, func)
+        self.code.op1 = op1
+        self.code.addr = addr
+        self.update_parity()
 
     def __str__(self) -> str:
-        mnemo = INST_MNEMO_MAP.mnemo[(self.type, self.opcode, self.func)]
-        return f"{mnemo}\tr{self.op1}, 0x{self.addr:04x}"
+        return f"{self.name}\tr{self.code.op1}, 0x{self.code.addr:04x}"
 
-    def __repr__(self) -> str:
-        return f"0x{self.assemble():08x}\t{str(self)}"
-
-    def __eq__(self, other):
-        return self.assemble() == other.assemble()
-
-    def assemble(self) -> int:
-        inst_code = 0
-        inst_code = bitslice_set(inst_code, self.type,      SpectInstruction.TYPE)
-        inst_code = bitslice_set(inst_code, self.opcode,    SpectInstruction.OPCODE)
-        inst_code = bitslice_set(inst_code, self.func,      SpectInstruction.FUNC)
-        inst_code = bitslice_set(inst_code, self.op1,       SpectInstruction.OP1)
-        inst_code = bitslice_set(inst_code, self.addr,      SpectInstruction.ADDR)
-
-        parity = (bin(inst_code).count("1") & 1)
-        inst_code = bitslice_set(inst_code, parity, SpectInstruction.PARITY)
-
-        return inst_code
+    @classmethod
+    def disassemble(cls, inst_code: int):
+        code = SpectInstructionM.Layout(inst_code)
+        return SpectInstructionM(
+            opcode  = code.opcode,
+            func    = code.func,
+            op1     = code.op1,
+            addr    = code.addr,
+        )
