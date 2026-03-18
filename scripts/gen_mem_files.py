@@ -7,6 +7,11 @@ from pathlib import Path
 import argparse
 from datetime import date
 
+__author__ = "Vit Masek"
+__copyright__ = "Tropic Square s.r.o."
+__license___ = "See LICENSE file"
+__maintainer__ = "Vit Masek"
+
 def main():
     parser = argparse.ArgumentParser(description='TS SPECT Const ROM generator')
     parser.add_argument("-c", "--cfg", type=str, required=True,
@@ -105,7 +110,7 @@ f"""; ==========================================================================
 ;   author  Tropic Square s.r.o.
 ;
 ;  Copyright © {date.today().year} Tropic Square s.r.o. (https://tropicsquare.com/)
-;  This work is subject to the license terms of the LICENSE.txt file in the root
+;  This work is subject to the license terms of the LICENSE file in the root
 ;  directory of this source tree.
 ;  If a copy of the LICENSE file was not distributed with this work, you
 ;  obtain one at (https://tropicsquare.com/license)

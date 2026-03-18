@@ -1,6 +1,11 @@
 
 # -*- coding: utf-8 -*-
 
+__author__ = "Vit Masek"
+__copyright__ = "Tropic Square s.r.o."
+__license___ = "See LICENSE file"
+__maintainer__ = "Vit Masek"
+
 import numpy as np
 from enum import IntEnum
 from abc import ABC
