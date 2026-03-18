@@ -98,8 +98,7 @@ class WeierstrassCurve(ABC):
         elif encoding == "Raw":
             return self.x.to_bytes() + self.y.to_bytes()
         else:
-            print("Unsupported encoding ...")
-        return None
+            raise Exception(f"Unsupported encoding '{encoding}'")
 
     @classmethod
     def from_bytes(cls, b: bytes):

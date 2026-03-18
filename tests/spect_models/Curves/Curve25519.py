@@ -162,7 +162,7 @@ class Curve25519:
         if encoding == "Raw":
             return self.x.to_bytes() + self.y.to_bytes()
 
-        raise Exception("Unsupported encoding '%s'", encoding)
+        raise Exception(f"Unsupported encoding '{encoding}'")
 
     @classmethod
     def from_bytes(cls, b: bytes) -> Self:

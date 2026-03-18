@@ -99,7 +99,7 @@ class Field:
         elif encoding == 'little':
             return LE256(self.x)
         else:
-            raise Exception("Invalid encoding %s", encoding)
+            raise Exception(f"Invalid encoding '{encoding}'")
 
     @staticmethod
     def from_bytes(b: bytes, encoding='big'):
@@ -108,7 +108,7 @@ class Field:
         elif encoding == 'little':
             return Field(decode_le(b))
         else:
-            raise Exception("Invalid encoding %s", encoding)
+            raise Exception(f"Invalid encoding '{encoding}'")
 
 # Non class methods
 def sqrt(f: Field):

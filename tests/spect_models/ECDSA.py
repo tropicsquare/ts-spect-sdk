@@ -62,8 +62,7 @@ class Signature:
             r = decode_be(b[:32])
             s = decode_be(b[32:])
         else:
-            print(f"Signature length mus be 64 bytes")
-            return None
+            raise Exception(f"Invalid signature length: {len(b)}")
 
         return Signature(r, s)
 
@@ -110,21 +109,21 @@ class ECDSA:
 
         k = cls.__get_signature_nonce(M, sch, scn, Key.w)
         if k == 0:
-            print("Signature nonce is 0.")
+            print(f"{cls.__name__} Signature nonce is 0.")
             return None
 
         R = cls.CurveBase.spm(k).to_affine()
         r = R.x.val % cls.Curve.Q
 
         if r == 0:
-            print("Signature r is 0.")
+            print(f"{cls.__name__} Signature r is 0.")
             return None
 
         z = decode_be(M)
         s = ((z + r*Key.d) * INV0(k, cls.Curve.Q)) % cls.Curve.Q
 
         if s == 0:
-            print("Signature s is 0.")
+            print(f"{cls.__name__} Signature s is 0.")
             return None
 
         return Signature(r, s)
@@ -141,16 +140,14 @@ class ECDSA:
         elif isinstance(pub_key, cls.Curve):
             P = pub_key
         else:
-            print("Unsupported public key type:", type(pub_key))
-            return False
+            raise Exception(f"Unsupported public key type: {type(pub_key)}")
 
         if isinstance(signature, bytes):
             sig = Signature.from_bytes(signature)
         elif isinstance(signature, Signature):
             sig = signature
         else:
-            print("Unsupported signature type:", type(signature))
-            return False
+            raise Exception(f"Unsupported signature type: {type(signature)}")
 
         z = decode_be(M)
         s_inv = INV0(sig.s, cls.Curve.Q)

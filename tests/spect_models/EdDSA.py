@@ -62,7 +62,7 @@ class Signature:
             r = b[:32]
             s = decode_le(b[32:])
         else:
-            raise Exception("Invalid signature length.")
+            raise Exception(f"Invalid signature length: {len(b)}")
 
         return cls(r, s)
     
@@ -124,14 +124,14 @@ class EdDSA:
         elif isinstance(pub_key, Ed25519):
             P = pub_key
         else:
-            raise Exception("Unsupported public key type %s", type(pub_key))
+            raise Exception(f"Unsupported public key type: {type(pub_key)}")
         
         if isinstance(signature, bytes):
             sig = Signature.from_bytes(signature)
         elif isinstance(signature, Signature):
             sig = signature
         else:
-            raise Exception("Unsupported signature type %s", type(signature))
+            raise Exception(f"Unsupported signature type {type(signature)}")
 
         h = decode_le(sha512(sig.r + P.to_bytes() + M)) % Ed25519.Q
 

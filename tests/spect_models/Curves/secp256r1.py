@@ -109,8 +109,7 @@ class secp256r1(WeierstrassCurve):
             elif b.startswith(b'\x02'):
                 is_negative = False
             else:
-                print("Invalid sign for Compressed encoding!")
-                return None
+                raise Exception("Invalid sign for Compressed encoding!")
 
         elif len(b) == 65 and b.startswith(b'\x04'):
             x = cls.Field.from_bytes(b[1:33])
@@ -123,15 +122,13 @@ class secp256r1(WeierstrassCurve):
             return cls(x, y)
 
         else:
-            print("Invalid point encoding!")
-            return None
+            raise Exception("Invalid point encoding!")
 
         rhs = x**3 + cls.B
         was_square, y = R1Field.sqrt(rhs)
 
         if not was_square:
-            print("Invalid X-Coordinate!")
-            return None
+            raise Exception("Invalid X-Coordinate!")
 
         if y.is_negative() == is_negative:
             return cls(x, y)
