@@ -1,3 +1,8 @@
+__author__ = "Vit Masek"
+__copyright__ = "Tropic Square s.r.o."
+__license___ = "See LICENSE file"
+__maintainer__ = "Vit Masek"
+
 from spect_models.utils import CT_SELECT, decode_be, decode_le, BE256, LE256
 
 ######################################################################

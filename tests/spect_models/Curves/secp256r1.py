@@ -1,3 +1,8 @@
+__author__ = "Vit Masek"
+__copyright__ = "Tropic Square s.r.o."
+__license___ = "See LICENSE file"
+__maintainer__ = "Vit Masek"
+
 import random as rn
 
 import spect_models.Fields.Field_secp256r1 as R1Field
