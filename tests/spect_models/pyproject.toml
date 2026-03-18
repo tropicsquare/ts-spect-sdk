@@ -1,0 +1,18 @@
+[project]
+name = "spect_models"
+version = "1.0.0"
+description = "Cryptography models for SPECT tests"
+authors = [{ name = "Vit Masek", email = "vit.masek@tropicsquare.com" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.8" # Specify your minimum Python version
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "Topic :: Security :: Cryptography",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["spect_models"]
+namespaces = false
+
