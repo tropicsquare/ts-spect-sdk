@@ -6,6 +6,11 @@ import os
 import argparse
 from datetime import datetime
 
+__author__ = "Vit Masek"
+__copyright__ = "Tropic Square s.r.o."
+__license___ = "See LICENSE file"
+__maintainer__ = "Vit Masek"
+
 parser = argparse.ArgumentParser(description='TS SPECT C headers generator')
 
 parser.add_argument("-f", "--file", type=str, default="spect_ops_constants.h",
