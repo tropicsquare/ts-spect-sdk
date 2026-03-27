@@ -15,11 +15,14 @@ github_mirror:
     when: always
     only:
       - public
+    variables:
+      GIT_DEPTH: 0
     script:
       - source ./setup_env
 
       # Ensure we are on branch, not detached head
       - git checkout public
+      - git pull origin public --rebase
 
       # Use Proxy Github account "tropic-gitlab" to push to the github
       - git config --global user.email "tropic-gitlab@tropicsquare.com"
