@@ -24,8 +24,6 @@ class WeierstrassCurve(ABC):
         self.y = y
         self.z = z if z is not None else self.Field(1)
 
-        assert(self.is_valid())
-
     def is_infinity(self) -> bool:
         return self.z == 0
 
