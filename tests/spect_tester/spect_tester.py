@@ -216,6 +216,9 @@ class SpectTestRun:
     def status_summary(self):
         self.info(f"Number of Warnings: {self.warn_cnt}")
         self.info(f"Number of Errors: {self.err_cnt}")
+        self.info(f"Number of ISS Fatals: {self.iss_fatals}")
+        for f in self.iss_fatal_lines:
+            self.info(f)
 
     def parse_data_out(self):
         with open(self.data_out_file, 'r') as data_out_hex:
@@ -479,8 +482,12 @@ class SpectTestRun:
         self.info("SPECT_ISS finished")
 
         with open(self.iss_log_file) as f:
-            self.iss_fatal_lines = [line for line in f if "FATAL:" in line]
+            self.iss_fatal_lines = [line.strip() for line in f if "FATAL:" in line]
             self.iss_fatals = len(self.iss_fatal_lines)
+
+        if self.iss_verbosity > IssVerbosity.MEDIUM:
+            for f in self.iss_fatal_lines:
+                self.error(f)
 
         self.parse_data_out()
         self.parse_emem_out()
