@@ -496,6 +496,10 @@ class SpectTestRun:
         if self.dump_keymem == True:
             self.parse_keymem()
 
+        ctx = self.get_context()
+        if ctx.rar_pointer != 0:
+            self.error("RAR pointer not 0!")
+
 class SpectTester:
 
     ISS = "spect_iss"
