@@ -122,6 +122,7 @@ class SpectTestRun:
         self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
         self.exec_info_file  = os.path.join(self.run_dir, "exec_info.csv")
+        self.branch_trace_file  = os.path.join(self.run_dir, "branch_trace.csv")
         self.mem_access_file = os.path.join(self.run_dir, "mem_access.csv")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
@@ -435,6 +436,7 @@ class SpectTestRun:
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
         cmd += f" --dump-exec-info={self.exec_info_file}"
+        cmd += f" --dump-branch-trace={self.branch_trace_file}"
         cmd += f" --verbosity={self.iss_verbosity}"
         if self.dump_keymem == True:
             cmd += f" --dump-keymem={self.keymem_file}"
