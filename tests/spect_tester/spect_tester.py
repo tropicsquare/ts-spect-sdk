@@ -122,6 +122,7 @@ class SpectTestRun:
         self.emem_out_file   = os.path.join(self.run_dir, "emem_out.hex32")
         self.keymem_file     = os.path.join(self.run_dir, "keymem")
         self.exec_info_file  = os.path.join(self.run_dir, "exec_info.csv")
+        self.branch_trace_file  = os.path.join(self.run_dir, "branch_trace.csv")
         self.mem_access_file = os.path.join(self.run_dir, "mem_access.csv")
         self.rng_file        = os.path.join(self.run_dir, "rng_file.hex32")
         self.context_file    = os.path.join(self.run_dir, "context")
@@ -216,6 +217,9 @@ class SpectTestRun:
     def status_summary(self):
         self.info(f"Number of Warnings: {self.warn_cnt}")
         self.info(f"Number of Errors: {self.err_cnt}")
+        self.info(f"Number of ISS Fatals: {self.iss_fatals}")
+        for f in self.iss_fatal_lines:
+            self.info(f)
 
     def parse_data_out(self):
         with open(self.data_out_file, 'r') as data_out_hex:
@@ -432,6 +436,7 @@ class SpectTestRun:
         cmd += f" --dump-context={self.context_file}"
         cmd += f" --grv-hex={self.rng_file}"
         cmd += f" --dump-exec-info={self.exec_info_file}"
+        cmd += f" --dump-branch-trace={self.branch_trace_file}"
         cmd += f" --verbosity={self.iss_verbosity}"
         if self.dump_keymem == True:
             cmd += f" --dump-keymem={self.keymem_file}"
@@ -479,13 +484,21 @@ class SpectTestRun:
         self.info("SPECT_ISS finished")
 
         with open(self.iss_log_file) as f:
-            self.iss_fatal_lines = [line for line in f if "FATAL:" in line]
+            self.iss_fatal_lines = [line.strip() for line in f if "FATAL:" in line]
             self.iss_fatals = len(self.iss_fatal_lines)
+
+        if self.iss_verbosity > IssVerbosity.MEDIUM:
+            for f in self.iss_fatal_lines:
+                self.error(f)
 
         self.parse_data_out()
         self.parse_emem_out()
         if self.dump_keymem == True:
             self.parse_keymem()
+
+        ctx = self.get_context()
+        if ctx.rar_pointer != 0:
+            self.error("RAR pointer not 0!")
 
 class SpectTester:
 
